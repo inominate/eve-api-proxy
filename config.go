@@ -6,19 +6,21 @@ import (
 )
 
 type configFile struct {
-	Listen  string
-	Threads int
-	Workers int
-	LogFile string
+	Listen   string
+	Threads  int
+	Workers  int
+	LogFile  string
+	CacheDir string
 }
 
 var conf = loadConfig()
 
 var defaultConfig = configFile{
-	Listen:  "127.0.0.1:3748",
-	Threads: 0,
-	Workers: 10,
-	LogFile: "",
+	Listen:   "127.0.0.1:3748",
+	Threads:  0,
+	Workers:  10,
+	LogFile:  "",
+	CacheDir: "",
 }
 
 func createConfig() configFile {

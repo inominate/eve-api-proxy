@@ -9,6 +9,8 @@ import (
 	"runtime"
 )
 
+var dc = NewDiskCache(conf.CacheDir)
+
 func main() {
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
 	if conf.LogFile != "" {
@@ -25,7 +27,7 @@ func main() {
 	runtime.GOMAXPROCS(conf.Threads)
 	log.Printf("EVEAPIProxy Starting Up with %d threads...", conf.Threads)
 
-	apicache.NewClient(apicache.NilCache)
+	apicache.NewClient(dc)
 	startWorkers()
 
 	var handler APIHandler
