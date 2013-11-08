@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var prefixes = "0123456789abcdef"
+
 type cacheEntry struct {
 	httpCode int
 	expires  time.Time
@@ -20,18 +22,14 @@ type DiskCache struct {
 	sync.RWMutex
 }
 
-func (d *DiskCache) check() {
-	rootF, _ := os.Open(d.cacheRoot)
-
+func (d *DiskCache) init() {
 	d.Lock()
 	defer d.Unlock()
 
-	files, _ := rootF.Readdir(0)
-	for _, fi := range files {
-		_, exists := d.cacheFiles[fi.Name()]
-		if !exists {
-			os.Remove(d.cacheRoot + "/" + fi.Name())
-		}
+	os.Mkdir(d.cacheRoot, 0770)
+	for _, dir := range prefixes {
+		os.RemoveAll(d.cacheRoot + "/" + string(dir))
+		os.Mkdir(d.cacheRoot+"/"+string(dir), 0770)
 	}
 }
 
@@ -41,7 +39,7 @@ func (d *DiskCache) clean() {
 	now := time.Now()
 	for tag, ce := range d.cacheFiles {
 		if now.After(ce.expires) {
-			os.Remove(d.cacheRoot + "/" + tag)
+			os.Remove(d.cacheRoot + "/" + string(tag[0]) + "/" + tag)
 			delete(d.cacheFiles, tag)
 		}
 	}
@@ -61,7 +59,7 @@ func (d *DiskCache) Store(cacheTag string, httpCode int, data []byte, expires ti
 	}
 
 	ce := cacheEntry{httpCode, expires}
-	err := ioutil.WriteFile(d.cacheRoot+"/"+cacheTag, data, 0600)
+	err := ioutil.WriteFile(d.cacheRoot+"/"+string(cacheTag[0])+"/"+cacheTag, data, 0660)
 	if err != nil {
 		return err
 	}
@@ -79,7 +77,7 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 		return 0, nil, ce.expires, fmt.Errorf("Not cached.")
 	}
 
-	data, err := ioutil.ReadFile(d.cacheRoot + "/" + cacheTag)
+	data, err := ioutil.ReadFile(d.cacheRoot + "/" + string(cacheTag[0]) + "/" + cacheTag)
 	if err != nil {
 		delete(d.cacheFiles, cacheTag)
 		return 0, nil, ce.expires, fmt.Errorf("Not cached.")
@@ -112,7 +110,7 @@ func NewDiskCache(rootDir string) *DiskCache {
 	dc.cacheRoot = rootDir
 	dc.cacheFiles = make(map[string]cacheEntry)
 
-	dc.check()
+	dc.init()
 
 	return &dc
 }
