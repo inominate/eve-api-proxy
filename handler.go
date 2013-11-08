@@ -47,10 +47,6 @@ func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func LogStats() {
 	PrintWorkerStats()
 	dc.LogStats()
-
-	LogMemStats()
-	runtime.GC()
-	log.Printf("Running GC...")
 	LogMemStats()
 }
 
