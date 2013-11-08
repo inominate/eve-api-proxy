@@ -48,6 +48,13 @@ func LogStats() {
 	PrintWorkerStats()
 	dc.LogStats()
 
+	LogMemStats()
+	runtime.GC()
+	log.Printf("Running GC...")
+	LogMemStats()
+}
+
+func LogMemStats() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	log.Printf("Alloc: %dkb Sys: %dkb", m.Alloc/1024, m.Sys/1024)
