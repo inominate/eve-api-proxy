@@ -135,7 +135,6 @@ func (d *DiskCache) Store(cacheTag string, HTTPCode int, data []byte, Expires ti
 		return err
 	}
 
-	log.Printf("Stored Cache for %s Expires: %s", cacheTag, ce.Expires)
 	d.cacheFiles[cacheTag] = ce
 	return nil
 }
