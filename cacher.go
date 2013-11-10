@@ -36,13 +36,19 @@ func (d *DiskCache) init() {
 var cleanOnce = &sync.Once{}
 
 func (d *DiskCache) clean() {
+	log.Printf("Cleaning Up.")
 	now := time.Now()
+
+	cleancount := 0
 	for tag, ce := range d.cacheFiles {
 		if now.After(ce.expires) {
 			os.Remove(d.cacheRoot + "/" + string(tag[0]) + "/" + tag)
 			delete(d.cacheFiles, tag)
+
+			cleancount++
 		}
 	}
+	log.Printf("Cleaned up %d entries.", cleancount)
 	cleanOnce = &sync.Once{}
 }
 
@@ -53,9 +59,9 @@ func (d *DiskCache) Store(cacheTag string, httpCode int, data []byte, expires ti
 	defer d.Unlock()
 
 	storeCount++
-	if storeCount >= 50 {
-		go cleanOnce.Do(func() { d.clean() })
+	if storeCount >= 500 {
 		storeCount = 0
+		go cleanOnce.Do(func() { d.clean() })
 	}
 
 	ce := cacheEntry{httpCode, expires}
