@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,14 +12,19 @@ import (
 
 var prefixes = "0123456789abcdef"
 
-type cacheEntry struct {
-	httpCode int
-	expires  time.Time
+type CacheEntry struct {
+	HTTPCode int
+	Expires  time.Time
+}
+
+type diskCacheEntry struct {
+	Data []byte
+	CacheEntry
 }
 
 type DiskCache struct {
 	cacheRoot  string
-	cacheFiles map[string]cacheEntry
+	cacheFiles map[string]CacheEntry
 	sync.RWMutex
 }
 
@@ -26,10 +32,53 @@ func (d *DiskCache) init() {
 	d.Lock()
 	defer d.Unlock()
 
+	if d.cacheFiles == nil {
+		log.Fatalf("Tried to load uninitialized cache.")
+	}
+
 	os.Mkdir(d.cacheRoot, 0770)
+
 	for _, dir := range prefixes {
-		os.RemoveAll(d.cacheRoot + "/" + string(dir))
-		os.Mkdir(d.cacheRoot+"/"+string(dir), 0770)
+		dirName := d.cacheRoot + "/" + string(dir)
+		err := os.Mkdir(dirName, 0770)
+		if err != nil {
+			//Either cannot create directory, or directory already exists, let's try opening it to find out.
+			dirf, derr := os.Open(dirName)
+			if derr != nil {
+				// Couldn't open directory, panic.
+				log.Fatalf("Couldn't create or open %s: %s/%s", dirName, err, derr)
+			}
+
+			files, err := dirf.Readdirnames(0)
+			if err != nil {
+				log.Fatalf("Couldn't read %s: %s", dirName, err)
+			}
+
+			var de diskCacheEntry
+			for _, filename := range files {
+				fullname := dirName + "/" + filename
+
+				jsondata, err := ioutil.ReadFile(fullname)
+				if err != nil {
+					log.Fatalf("Failed to read %s: %s", fullname, err)
+				}
+
+				err = json.Unmarshal(jsondata, &de)
+				if err != nil {
+					log.Printf("Recovering from cache consistency error for %s: %s ", fullname, err)
+				}
+
+				if err != nil || time.Now().After(de.Expires) {
+					err := os.Remove(fullname)
+					if err != nil {
+						log.Fatalf("Failed to remove expired cache entry %s: %s", fullname, err)
+					}
+					continue
+				}
+
+				d.cacheFiles[filename] = de.CacheEntry
+			}
+		}
 	}
 }
 
@@ -41,7 +90,7 @@ func (d *DiskCache) clean() {
 
 	cleancount := 0
 	for tag, ce := range d.cacheFiles {
-		if now.After(ce.expires) {
+		if now.After(ce.Expires) {
 			os.Remove(d.cacheRoot + "/" + string(tag[0]) + "/" + tag)
 			delete(d.cacheFiles, tag)
 
@@ -52,24 +101,41 @@ func (d *DiskCache) clean() {
 	cleanOnce = &sync.Once{}
 }
 
-var storeCount = 0
+var storeCount int64
 
-func (d *DiskCache) Store(cacheTag string, httpCode int, data []byte, expires time.Time) error {
+func (d *DiskCache) filename(tag string) string {
+	return d.cacheRoot + "/" + string(tag[0]) + "/" + tag
+}
+
+func (d *DiskCache) Store(cacheTag string, HTTPCode int, data []byte, Expires time.Time) error {
 	d.Lock()
 	defer d.Unlock()
 
+	if d.cacheFiles == nil {
+		log.Fatalf("Tried to store to uninitialized cache.")
+	}
+
 	storeCount++
-	if storeCount >= 500 {
-		storeCount = 0
+	if storeCount%500 == 0 {
 		go cleanOnce.Do(func() { d.clean() })
 	}
 
-	ce := cacheEntry{httpCode, expires}
-	err := ioutil.WriteFile(d.cacheRoot+"/"+string(cacheTag[0])+"/"+cacheTag, data, 0660)
+	ce := CacheEntry{HTTPCode, Expires}
+
+	de := diskCacheEntry{data, ce}
+	jsondata, err := json.Marshal(&de)
 	if err != nil {
+		log.Printf("Unknown JSON Marshal Error: %s", err)
 		return err
 	}
 
+	err = ioutil.WriteFile(d.filename(cacheTag), jsondata, 0660)
+	if err != nil {
+		log.Printf("Unknown File Error: %s", err)
+		return err
+	}
+
+	log.Printf("Stored Cache for %s Expires: %s", cacheTag, ce.Expires)
 	d.cacheFiles[cacheTag] = ce
 	return nil
 }
@@ -78,18 +144,31 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 	d.RLock()
 	defer d.RUnlock()
 
-	ce, exists := d.cacheFiles[cacheTag]
-	if !exists || time.Now().After(ce.expires) {
-		return 0, nil, ce.expires, fmt.Errorf("Not cached.")
+	if d.cacheFiles == nil {
+		log.Fatalf("Tried to get from uninitialized cache.")
 	}
 
-	data, err := ioutil.ReadFile(d.cacheRoot + "/" + string(cacheTag[0]) + "/" + cacheTag)
+	ce, exists := d.cacheFiles[cacheTag]
+	if !exists || time.Now().After(ce.Expires) {
+		return 0, nil, ce.Expires, fmt.Errorf("Not cached.")
+	}
+
+	jsondata, err := ioutil.ReadFile(d.filename(cacheTag))
 	if err != nil {
 		delete(d.cacheFiles, cacheTag)
-		return 0, nil, ce.expires, fmt.Errorf("Not cached.")
+		return 0, nil, ce.Expires, fmt.Errorf("Cache error - File not found.")
 	}
 
-	return ce.httpCode, data, ce.expires, nil
+	var de diskCacheEntry
+	err = json.Unmarshal(jsondata, &de)
+	if err != nil || de.Expires != ce.Expires {
+		log.Printf("Cache consistency error: %s (Got: %s Expected: %s)", err, de.Expires, ce.Expires)
+
+		delete(d.cacheFiles, cacheTag)
+		return 0, nil, ce.Expires, fmt.Errorf("Cache error - Cache invalid.")
+	}
+
+	return ce.HTTPCode, de.Data, ce.Expires, nil
 }
 
 func (d *DiskCache) LogStats() {
@@ -102,7 +181,7 @@ func (d *DiskCache) LogStats() {
 	now := time.Now()
 	for _, ce := range d.cacheFiles {
 		entries++
-		if now.After(ce.expires) {
+		if now.After(ce.Expires) {
 			expired++
 		}
 	}
@@ -114,7 +193,7 @@ func NewDiskCache(rootDir string) *DiskCache {
 	var dc DiskCache
 
 	dc.cacheRoot = rootDir
-	dc.cacheFiles = make(map[string]cacheEntry)
+	dc.cacheFiles = make(map[string]CacheEntry)
 
 	dc.init()
 

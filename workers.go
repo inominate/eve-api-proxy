@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"ieveapi/apicache"
 	"log"
 	"sync"
@@ -56,6 +57,12 @@ func worker(reqChan chan apiReq) {
 		req.apiErr = resp.Error
 		req.httpCode = resp.HTTPCode
 		req.err = err
+
+		var errorStr string
+		if resp.Error.ErrorCode != 0 {
+			errorStr = fmt.Sprintf(" Error %d: %s", resp.Error.ErrorCode, resp.Error.ErrorText)
+		}
+		log.Printf("%s - %+v FromCache: %v HTTP: %d%s", req.url, req.params, resp.FromCache, resp.HTTPCode, errorStr)
 
 		req.respChan <- req
 		atomic.AddInt32(&activeWorkerCount, -1)
