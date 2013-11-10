@@ -63,7 +63,7 @@ func worker(reqChan chan apiReq) {
 	atomic.AddInt32(&workerCount, -1)
 }
 
-var startWorkersOnce sync.Once
+var startWorkersOnce = &sync.Once{}
 
 func startWorkers() {
 	startWorkersOnce.Do(realStartWorkers)
@@ -83,7 +83,7 @@ func stopWorkers() {
 	for atomic.LoadInt32(&activeWorkerCount) > 0 {
 		time.Sleep(10 * time.Millisecond)
 	}
-	startWorkersOnce = sync.Once{}
+	startWorkersOnce = &sync.Once{}
 }
 
 func PrintWorkerStats() {
