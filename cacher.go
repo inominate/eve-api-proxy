@@ -91,7 +91,7 @@ func (d *DiskCache) clean() {
 	cleancount := 0
 	for tag, ce := range d.cacheFiles {
 		if now.After(ce.Expires) {
-			os.Remove(d.cacheRoot + "/" + string(tag[0]) + "/" + tag)
+			os.Remove(d.filename(tag))
 			delete(d.cacheFiles, tag)
 
 			cleancount++
