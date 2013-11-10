@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var dc = NewDiskCache(conf.CacheDir)
+var dc *DiskCache
 
 func main() {
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
@@ -27,6 +27,10 @@ func main() {
 	}
 	runtime.GOMAXPROCS(conf.Threads)
 	log.Printf("EVEAPIProxy Starting Up with %d threads...", conf.Threads)
+
+	log.Printf("Initializing Disk Cache...")
+	dc = NewDiskCache(conf.CacheDir)
+	log.Printf("Done.")
 
 	apicache.NewClient(dc)
 	startWorkers()
