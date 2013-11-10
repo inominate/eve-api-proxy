@@ -37,7 +37,7 @@ func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	data, code, err := APIReq(url, params)
 	if err != nil {
-		log.Printf("Handler Error: %s", err)
+		log.Printf("Handler Error for %s: %s - %+v", err, url, params)
 	}
 
 	w.WriteHeader(code)
