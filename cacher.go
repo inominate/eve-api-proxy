@@ -82,25 +82,42 @@ func (d *DiskCache) init() {
 	}
 }
 
-var cleanOnce = &sync.Once{}
-
 func (d *DiskCache) clean() {
+	d.Lock()
+	defer d.Unlock()
+
+	if d.cacheFiles == nil {
+		log.Fatalf("Tried to clean with uninitialized cache.")
+	}
+
+	os.Mkdir(d.cacheRoot, 0770)
+
+	for _, dir := range prefixes {
+		dirName := d.cacheRoot + "/" + string(dir)
+		os.RemoveAll(dirName)
+		os.Mkdir(dirName, 0770)
+	}
+}
+
+var collectOnce = &sync.Once{}
+
+func (d *DiskCache) collectExpired() {
 	log.Printf("Cleaning Up.")
 	now := time.Now()
 
 	d.Lock()
-	cleancount := 0
+	collectcount := 0
 	for tag, ce := range d.cacheFiles {
 		if now.After(ce.Expires) {
 			os.Remove(d.filename(tag))
 			delete(d.cacheFiles, tag)
 
-			cleancount++
+			collectcount++
 		}
 	}
 	d.Unlock()
-	log.Printf("Cleaned up %d entries.", cleancount)
-	cleanOnce = &sync.Once{}
+	log.Printf("Collected %d expired entries.", collectcount)
+	collectOnce = &sync.Once{}
 }
 
 var storeCount int64
@@ -119,7 +136,7 @@ func (d *DiskCache) Store(cacheTag string, HTTPCode int, data []byte, Expires ti
 
 	storeCount++
 	if storeCount%50 == 0 {
-		go cleanOnce.Do(func() { d.clean() })
+		go collectOnce.Do(func() { d.collectExpired() })
 	}
 
 	ce := CacheEntry{HTTPCode, Expires}
@@ -198,13 +215,17 @@ func (d *DiskCache) LogStats() {
 	log.Printf("Cache Entries: %d  Expired Entries: %d", entries, expired)
 }
 
-func NewDiskCache(rootDir string) *DiskCache {
+func NewDiskCache(rootDir string, clearCache bool) *DiskCache {
 	var dc DiskCache
 
 	dc.cacheRoot = rootDir
 	dc.cacheFiles = make(map[string]CacheEntry)
 
-	dc.init()
+	if clearCache {
+		dc.clean()
+	} else {
+		dc.init()
+	}
 
 	return &dc
 }

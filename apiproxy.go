@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"ieveapi/apicache"
 	"log"
@@ -11,6 +12,7 @@ import (
 )
 
 var dc *DiskCache
+var clearCache = flag.Bool("clear", false, "Delete existing cache instead of loading it.")
 
 func main() {
 	time.Local = time.UTC
@@ -24,6 +26,8 @@ func main() {
 		log.SetOutput(logfp)
 	}
 
+	flag.Parse()
+
 	if conf.Threads == 0 {
 		conf.Threads = runtime.NumCPU()
 	}
@@ -31,7 +35,7 @@ func main() {
 	log.Printf("EVEAPIProxy Starting Up with %d threads...", conf.Threads)
 
 	log.Printf("Initializing Disk Cache...")
-	dc = NewDiskCache(conf.CacheDir)
+	dc = NewDiskCache(conf.CacheDir, *clearCache)
 	log.Printf("Done.")
 
 	apicache.NewClient(dc)
