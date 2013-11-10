@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"time"
 )
 
 var dc = NewDiskCache(conf.CacheDir)
@@ -31,5 +32,13 @@ func main() {
 	startWorkers()
 
 	var handler APIHandler
-	log.Fatal(http.ListenAndServe(conf.Listen, &handler))
+
+	server := http.Server{
+		Addr:         conf.Listen,
+		Handler:      &handler,
+		ReadTimeout:  5 * time.Minute,
+		WriteTimeout: 5 * time.Minute,
+	}
+
+	log.Fatal(server.ListenAndServe())
 }
