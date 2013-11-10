@@ -62,7 +62,7 @@ func worker(reqChan chan apiReq) {
 		if resp.Error.ErrorCode != 0 {
 			errorStr = fmt.Sprintf(" Error %d: %s", resp.Error.ErrorCode, resp.Error.ErrorText)
 		}
-		log.Printf("%s - %+v FromCache: %v HTTP: %d%s", req.url, req.params, resp.FromCache, resp.HTTPCode, errorStr)
+		log.Printf("%s - %+v FromCache: %v HTTP: %d Expires: %s%s", req.url, req.params, resp.FromCache, resp.HTTPCode, resp.Expires.Format("2006-01-02 15:04:05"), errorStr)
 
 		req.respChan <- req
 		atomic.AddInt32(&activeWorkerCount, -1)
