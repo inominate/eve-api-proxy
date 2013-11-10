@@ -88,6 +88,7 @@ func (d *DiskCache) clean() {
 	log.Printf("Cleaning Up.")
 	now := time.Now()
 
+	d.Lock()
 	cleancount := 0
 	for tag, ce := range d.cacheFiles {
 		if now.After(ce.Expires) {
@@ -97,6 +98,7 @@ func (d *DiskCache) clean() {
 			cleancount++
 		}
 	}
+	d.Unlock()
 	log.Printf("Cleaned up %d entries.", cleancount)
 	cleanOnce = &sync.Once{}
 }
@@ -116,7 +118,7 @@ func (d *DiskCache) Store(cacheTag string, HTTPCode int, data []byte, Expires ti
 	}
 
 	storeCount++
-	if storeCount%500 == 0 {
+	if storeCount%50 == 0 {
 		go cleanOnce.Do(func() { d.clean() })
 	}
 
@@ -154,7 +156,11 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 
 	jsondata, err := ioutil.ReadFile(d.filename(cacheTag))
 	if err != nil {
+		d.RUnlock()
+		d.Lock()
 		delete(d.cacheFiles, cacheTag)
+		d.Unlock()
+
 		return 0, nil, ce.Expires, fmt.Errorf("Cache error - File not found.")
 	}
 
@@ -163,7 +169,11 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 	if err != nil || de.Expires != ce.Expires {
 		log.Printf("Cache consistency error: %s (Got: %s Expected: %s)", err, de.Expires, ce.Expires)
 
+		d.RUnlock()
+		d.Lock()
 		delete(d.cacheFiles, cacheTag)
+		d.Unlock()
+
 		return 0, nil, ce.Expires, fmt.Errorf("Cache error - Cache invalid.")
 	}
 
