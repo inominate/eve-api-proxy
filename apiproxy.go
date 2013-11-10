@@ -13,6 +13,8 @@ import (
 var dc *DiskCache
 
 func main() {
+	time.Local = time.UTC
+
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
 	if conf.LogFile != "" {
 		logfp, err := os.OpenFile(conf.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
