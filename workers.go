@@ -65,7 +65,7 @@ func worker(reqChan chan apiReq) {
 			errorStr = fmt.Sprintf(" Error %d: %s", resp.Error.ErrorCode, resp.Error.ErrorText)
 		}
 		useLog := atomic.LoadInt32(&logActive)
-		if useLog != 0 {
+		if useLog != 0 || resp.HTTPCode != 200 {
 			log.Printf("%s - %+v FromCache: %v HTTP: %d Expires: %s%s", req.url, req.params, resp.FromCache, resp.HTTPCode, resp.Expires.Format("2006-01-02 15:04:05"), errorStr)
 		}
 
