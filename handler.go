@@ -23,11 +23,15 @@ func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if url == "/logon" {
+		log.Printf("Verbose logging enabled")
 		EnableVerboseLogging()
+		return
 	}
 
 	if url == "/logoff" {
+		log.Printf("Verbose logging disabled")
 		DisableVerboseLogging()
+		return
 	}
 
 	w.Header().Add("Content-Type", "text/xml")
