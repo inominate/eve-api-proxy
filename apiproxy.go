@@ -6,6 +6,7 @@ import (
 	"ieveapi/apicache"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"time"
@@ -33,6 +34,10 @@ func main() {
 	}
 	runtime.GOMAXPROCS(conf.Threads)
 	log.Printf("EVEAPIProxy Starting Up with %d threads...", conf.Threads)
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	log.Printf("Initializing Disk Cache...")
 	dc = NewDiskCache(conf.CacheDir, *clearCache)

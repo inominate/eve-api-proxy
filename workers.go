@@ -42,6 +42,8 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 	return resp.data, resp.httpCode, resp.err
 }
 
+var logActive int32
+
 func worker(reqChan chan apiReq) {
 	atomic.AddInt32(&workerCount, 1)
 	for req := range reqChan {
@@ -62,7 +64,10 @@ func worker(reqChan chan apiReq) {
 		if resp.Error.ErrorCode != 0 {
 			errorStr = fmt.Sprintf(" Error %d: %s", resp.Error.ErrorCode, resp.Error.ErrorText)
 		}
-		log.Printf("%s - %+v FromCache: %v HTTP: %d Expires: %s%s", req.url, req.params, resp.FromCache, resp.HTTPCode, resp.Expires.Format("2006-01-02 15:04:05"), errorStr)
+		useLog := atomic.LoadInt32(&logActive)
+		if useLog != 0 {
+			log.Printf("%s - %+v FromCache: %v HTTP: %d Expires: %s%s", req.url, req.params, resp.FromCache, resp.HTTPCode, resp.Expires.Format("2006-01-02 15:04:05"), errorStr)
+		}
 
 		req.respChan <- req
 		atomic.AddInt32(&activeWorkerCount, -1)
@@ -96,6 +101,15 @@ func stopWorkers() {
 func PrintWorkerStats() {
 	active, loaded := GetWorkerStats()
 	log.Printf("%d workers idle, %d workers active.", loaded-active, active)
+}
+
+func EnableVerboseLogging() {
+	atomic.AddInt32(&logActive, 1)
+}
+
+func DisableVerboseLogging() {
+	useLog := atomic.LoadInt32(&logActive)
+	atomic.AddInt32(&logActive, -useLog)
 }
 
 func GetWorkerStats() (int32, int32) {

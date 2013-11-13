@@ -22,6 +22,14 @@ func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if url == "/logon" {
+		EnableVerboseLogging()
+	}
+
+	if url == "/logoff" {
+		DisableVerboseLogging()
+	}
+
 	w.Header().Add("Content-Type", "text/xml")
 	if _, valid := validPages[strings.ToLower(url)]; !valid {
 		log.Printf("Invalid URL %s - %s", url, req.Form)
