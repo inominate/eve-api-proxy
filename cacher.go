@@ -99,25 +99,26 @@ func (d *DiskCache) clean() {
 	}
 }
 
-var collectOnce = &sync.Once{}
+func (d *DiskCache) expiredPurger() {
+	for {
+		log.Printf("Cleaning Up.")
+		now := time.Now()
 
-func (d *DiskCache) collectExpired() {
-	log.Printf("Cleaning Up.")
-	now := time.Now()
+		d.Lock()
+		collectcount := 0
+		for tag, ce := range d.cacheFiles {
+			if now.After(ce.Expires) {
+				os.Remove(d.filename(tag))
+				delete(d.cacheFiles, tag)
 
-	d.Lock()
-	collectcount := 0
-	for tag, ce := range d.cacheFiles {
-		if now.After(ce.Expires) {
-			os.Remove(d.filename(tag))
-			delete(d.cacheFiles, tag)
-
-			collectcount++
+				collectcount++
+			}
 		}
+		d.Unlock()
+		log.Printf("Collected %d expired entries.", collectcount)
+
+		time.Sleep(15 * time.Minute)
 	}
-	d.Unlock()
-	log.Printf("Collected %d expired entries.", collectcount)
-	collectOnce = &sync.Once{}
 }
 
 var storeCount int64
@@ -132,11 +133,6 @@ func (d *DiskCache) Store(cacheTag string, HTTPCode int, data []byte, Expires ti
 
 	if d.cacheFiles == nil {
 		log.Fatalf("Tried to store to uninitialized cache.")
-	}
-
-	storeCount++
-	if storeCount%50 == 0 {
-		go collectOnce.Do(func() { d.collectExpired() })
 	}
 
 	ce := CacheEntry{HTTPCode, Expires}
@@ -227,5 +223,6 @@ func NewDiskCache(rootDir string, clearCache bool) *DiskCache {
 		dc.init()
 	}
 
+	go dc.expiredPurger()
 	return &dc
 }
