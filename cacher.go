@@ -117,7 +117,7 @@ func (d *DiskCache) expiredPurger() {
 		d.Unlock()
 		log.Printf("Collected %d expired entries.", collectcount)
 
-		time.Sleep(15 * time.Minute)
+		time.Sleep(5 * time.Minute)
 	}
 }
 
