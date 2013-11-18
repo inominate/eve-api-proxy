@@ -30,7 +30,7 @@ func createConfig() configFile {
 }
 
 func loadConfig() configFile {
-	conf, err := ioutil.ReadFile("eveapiproxy.xml")
+	conf, err := ioutil.ReadFile("apiproxy.xml")
 	if err != nil {
 		return createConfig()
 	}
