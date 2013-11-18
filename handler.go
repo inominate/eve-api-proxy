@@ -7,6 +7,7 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,6 +17,13 @@ func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	url := path.Clean(req.URL.Path)
 
+	useLog := atomic.LoadInt32(&logActive)
+	if useLog >= 3 {
+		log.Printf("Starting request for %s...", url)
+	}
+
+	startTime := time.Now()
+
 	if url == "/stats" {
 		LogStats()
 		w.Write([]byte(""))
@@ -23,14 +31,16 @@ func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if url == "/logon" {
-		log.Printf("Verbose logging enabled")
-		EnableVerboseLogging()
+		ll := EnableVerboseLogging()
+		log.Printf("Logging verbosity increased to: %d", ll)
+		w.Write([]byte(""))
 		return
 	}
 
 	if url == "/logoff" {
 		log.Printf("Verbose logging disabled")
 		DisableVerboseLogging()
+		w.Write([]byte(""))
 		return
 	}
 
@@ -54,6 +64,10 @@ func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(code)
 	w.Write(data)
+
+	if useLog >= 2 {
+		log.Printf("Request took: %.2f seconds.", time.Since(startTime).Seconds())
+	}
 }
 
 func LogStats() {
