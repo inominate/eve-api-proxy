@@ -4,6 +4,7 @@ import (
 	"apiproxy/apicache"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -68,7 +69,15 @@ func worker(reqChan chan apiReq, workerID int) {
 		}
 		useLog := atomic.LoadInt32(&logActive)
 		if useLog != 0 || resp.HTTPCode != 200 {
-			log.Printf("w%d: %s - %+v FromCache: %v HTTP: %d Expires: %s%s", workerID, req.url, req.params, resp.FromCache, resp.HTTPCode, resp.Expires.Format("2006-01-02 15:04:05"), errorStr)
+			logParams := map[string]string{}
+			for k, _ := range req.params {
+				if strings.ToLower(k) == "vcode" {
+					logParams[k] = req.params[k][0:8] + "..."
+				} else {
+					logParams[k] = req.params[k]
+				}
+			}
+			log.Printf("w%d: %s - %+v FromCache: %v HTTP: %d Expires: %s%s", workerID, req.url, logParams, resp.FromCache, resp.HTTPCode, resp.Expires.Format("2006-01-02 15:04:05"), errorStr)
 		}
 
 		req.respChan <- req
