@@ -17,11 +17,6 @@ type CacheEntry struct {
 	Expires  time.Time
 }
 
-type diskCacheEntry struct {
-	Data []byte
-	CacheEntry
-}
-
 type DiskCache struct {
 	cacheRoot  string
 	cacheFiles map[string]CacheEntry
@@ -54,8 +49,12 @@ func (d *DiskCache) init() {
 				log.Fatalf("Couldn't read %s: %s", dirName, err)
 			}
 
-			var de diskCacheEntry
+			var de CacheEntry
 			for _, filename := range files {
+				if len(filename) < 5 || filename[len(filename)-len(".xml"):] == ".xml" {
+					continue
+				}
+
 				fullname := dirName + "/" + filename
 
 				jsondata, err := ioutil.ReadFile(fullname)
@@ -70,13 +69,14 @@ func (d *DiskCache) init() {
 
 				if err != nil || time.Now().After(de.Expires) {
 					err := os.Remove(fullname)
-					if err != nil {
-						log.Fatalf("Failed to remove expired cache entry %s: %s", fullname, err)
+					errx := os.Remove(fullname + ".xml")
+					if err != nil || errx != nil {
+						log.Fatalf("Failed to remove expired cache entry %s: %s - %s", fullname, err, errx)
 					}
 					continue
 				}
 
-				d.cacheFiles[filename] = de.CacheEntry
+				d.cacheFiles[filename] = de
 			}
 		}
 	}
@@ -111,6 +111,7 @@ func (d *DiskCache) expiredPurger() {
 		for tag, ce := range d.cacheFiles {
 			if now.After(ce.Expires) {
 				os.Remove(d.filename(tag))
+				os.Remove(d.filename(tag) + ".xml")
 				delete(d.cacheFiles, tag)
 
 				collectcount++
@@ -139,14 +140,19 @@ func (d *DiskCache) Store(cacheTag string, HTTPCode int, data []byte, Expires ti
 
 	ce := CacheEntry{HTTPCode, Expires}
 
-	de := diskCacheEntry{data, ce}
-	jsondata, err := json.Marshal(&de)
+	jsondata, err := json.Marshal(&ce)
 	if err != nil {
 		log.Printf("Unknown JSON Marshal Error: %s", err)
 		return err
 	}
 
 	err = ioutil.WriteFile(d.filename(cacheTag), jsondata, 0660)
+	if err != nil {
+		log.Printf("Unknown File Error: %s", err)
+		return err
+	}
+
+	err = ioutil.WriteFile(d.filename(cacheTag)+".xml", data, 0660)
 	if err != nil {
 		log.Printf("Unknown File Error: %s", err)
 		return err
@@ -176,10 +182,10 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 		delete(d.cacheFiles, cacheTag)
 		d.Unlock()
 
-		return 0, nil, ce.Expires, fmt.Errorf("Cache error - File not found.")
+		return 0, nil, ce.Expires, fmt.Errorf("Cache error - metadata file not found.")
 	}
 
-	var de diskCacheEntry
+	var de CacheEntry
 	err = json.Unmarshal(jsondata, &de)
 	if err != nil || de.Expires != ce.Expires {
 		log.Printf("Cache consistency error: %s (Got: %s Expected: %s)", err, de.Expires, ce.Expires)
@@ -189,10 +195,20 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 		delete(d.cacheFiles, cacheTag)
 		d.Unlock()
 
-		return 0, nil, ce.Expires, fmt.Errorf("Cache error - Cache invalid.")
+		return 0, nil, ce.Expires, fmt.Errorf("Cache error - cache invalid.")
 	}
 
-	return ce.HTTPCode, de.Data, ce.Expires, nil
+	data, err := ioutil.ReadFile(d.filename(cacheTag) + ".xml")
+	if err != nil {
+		d.RUnlock()
+		d.Lock()
+		delete(d.cacheFiles, cacheTag)
+		d.Unlock()
+
+		return 0, nil, ce.Expires, fmt.Errorf("Cache error - data file not found.")
+	}
+
+	return ce.HTTPCode, data, ce.Expires, nil
 }
 
 func (d *DiskCache) LogStats() {
