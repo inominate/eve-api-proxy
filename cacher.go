@@ -90,6 +90,8 @@ func (d *DiskCache) clean() {
 		log.Fatalf("Tried to clean with uninitialized cache.")
 	}
 
+	log.Printf("Clearing existing cache.")
+
 	os.Mkdir(d.cacheRoot, 0770)
 
 	for _, dir := range prefixes {

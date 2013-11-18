@@ -16,6 +16,8 @@ var dc *DiskCache
 var clearCache = flag.Bool("clear", false, "Delete existing cache instead of loading it.")
 
 func main() {
+	flag.Parse()
+
 	time.Local = time.UTC
 
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
@@ -26,8 +28,6 @@ func main() {
 		}
 		log.SetOutput(logfp)
 	}
-
-	flag.Parse()
 
 	if conf.Threads == 0 {
 		conf.Threads = runtime.NumCPU()
@@ -44,6 +44,7 @@ func main() {
 	log.Printf("Done.")
 
 	apicache.NewClient(dc)
+	//	apicache.GetDefaultClient().Retries = 5
 	startWorkers()
 
 	var handler APIHandler
