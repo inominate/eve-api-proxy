@@ -52,7 +52,9 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 		}
 		logParams = fmt.Sprintf("%s&%s=%s", logParams, k, paramVal)
 	}
-	logParams = "?" + logParams[1:]
+	if logParams != "" {
+		logParams = "?" + logParams[1:]
+	}
 
 	workerID := "C"
 	// Don't send it to a worker if we can just yank it fromm the cache
