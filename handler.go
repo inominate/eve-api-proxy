@@ -14,15 +14,15 @@ import (
 type APIHandler struct{}
 
 func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	startTime := time.Now()
+
 	req.ParseForm()
 	url := path.Clean(req.URL.Path)
 
 	useLog := atomic.LoadInt32(&logActive)
-	if useLog >= 3 {
+	if useLog >= 5 {
 		log.Printf("Starting request for %s...", url)
 	}
-
-	startTime := time.Now()
 
 	if url == "/stats" {
 		LogStats()
@@ -65,7 +65,7 @@ func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(code)
 	w.Write(data)
 
-	if useLog >= 2 {
+	if useLog >= 4 {
 		log.Printf("Request took: %.2f seconds.", time.Since(startTime).Seconds())
 	}
 }

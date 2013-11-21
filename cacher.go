@@ -172,7 +172,7 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 
 	ce, exists := d.cacheFiles[cacheTag]
 	if !exists || time.Now().After(ce.Expires) {
-		return 0, nil, ce.Expires, fmt.Errorf("Not cached.")
+		return 0, nil, ce.Expires, fmt.Errorf("Not cached. %v %v %v", exists, time.Now(), ce.Expires)
 	}
 
 	jsondata, err := ioutil.ReadFile(d.filename(cacheTag))

@@ -4,19 +4,22 @@ import (
 	"apiproxy/apicache"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 type apiReq struct {
-	url    string
-	params map[string]string
+	apiReq  *apicache.Request
+	apiResp *apicache.Response
+
 	data   []byte
 	apiErr apicache.APIError
 
 	expires time.Time
 
+	worker   int
 	httpCode int
 	err      error
 	respChan chan apiReq
@@ -28,18 +31,54 @@ var apiClient apicache.Client
 var activeWorkerCount, workerCount int32
 
 func APIReq(url string, params map[string]string) ([]byte, int, error) {
+	var errorStr string
+
 	if atomic.LoadInt32(&workerCount) <= 0 {
-		startWorkers()
+		panic("No workers!")
+	}
+	useLog := atomic.LoadInt32(&logActive)
+
+	// Build the request
+	apireq := apicache.NewRequest(url)
+	logParams := ""
+	var paramVal string
+	for k, v := range params {
+		apireq.Set(k, v)
+		// Show full vcode for log level 3
+		if strings.ToLower(k) == "vcode" && useLog < 3 {
+			paramVal = params[k][0:8] + "..."
+		} else {
+			paramVal = params[k]
+		}
+		logParams = fmt.Sprintf("%s&%s=%s", logParams, k, paramVal)
+	}
+	logParams = "?" + logParams[1:]
+
+	workerID := "C"
+	// Don't send it to a worker if we can just yank it fromm the cache
+	apiResp, err := apireq.GetCached()
+	if err != nil {
+		log.Printf("No cache: %s", err)
+		respChan := make(chan apiReq)
+		req := apiReq{apiReq: apireq, respChan: respChan}
+		workChan <- req
+
+		resp := <-respChan
+		close(respChan)
+
+		apiResp = resp.apiResp
+		err = resp.err
+		workerID = fmt.Sprintf("%d", resp.worker)
 	}
 
-	respChan := make(chan apiReq)
-	req := apiReq{url: url, params: params, respChan: respChan}
-	workChan <- req
+	if useLog > 0 && apiResp.Error.ErrorCode != 0 {
+		errorStr = fmt.Sprintf(" Error %d: %s", apiResp.Error.ErrorCode, apiResp.Error.ErrorText)
+	}
+	if useLog != 0 || apiResp.HTTPCode != 200 {
+		log.Printf("w%s: %s%s FromCache: %v HTTP: %d Expires: %s%s", workerID, url, logParams, apiResp.FromCache, apiResp.HTTPCode, apiResp.Expires.Format("2006-01-02 15:04:05"), errorStr)
+	}
 
-	resp := <-respChan
-	close(respChan)
-
-	return resp.data, resp.httpCode, resp.err
+	return apiResp.Data, apiResp.HTTPCode, err
 }
 
 var logActive int32
@@ -50,26 +89,10 @@ func worker(reqChan chan apiReq, workerID int) {
 	atomic.AddInt32(&workerCount, 1)
 	for req := range reqChan {
 		atomic.AddInt32(&activeWorkerCount, 1)
-		apireq := apicache.NewRequest(req.url)
-		for k, v := range req.params {
-			apireq.Set(k, v)
-		}
 
-		resp, err := apireq.Do()
-		req.data = resp.Data
-		req.expires = resp.Expires
-		req.apiErr = resp.Error
-		req.httpCode = resp.HTTPCode
+		resp, err := req.apiReq.Do()
+		req.apiResp = resp
 		req.err = err
-
-		var errorStr string
-		if resp.Error.ErrorCode != 0 {
-			errorStr = fmt.Sprintf(" Error %d: %s", resp.Error.ErrorCode, resp.Error.ErrorText)
-		}
-		useLog := atomic.LoadInt32(&logActive)
-		if useLog != 0 || resp.HTTPCode != 200 {
-			log.Printf("w%d: %s - %+v FromCache: %v HTTP: %d Expires: %s%s", workerID, req.url, req.params, resp.FromCache, resp.HTTPCode, resp.Expires.Format("2006-01-02 15:04:05"), errorStr)
-		}
 
 		req.respChan <- req
 		atomic.AddInt32(&activeWorkerCount, -1)

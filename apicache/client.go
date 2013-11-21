@@ -183,8 +183,8 @@ type Response struct {
 	HTTPCode int
 }
 
-func (c *Client) GetCached(r *Request) (retresp Response, reterr error) {
-	var resp Response
+func (c *Client) GetCached(r *Request) (retresp *Response, reterr error) {
+	resp := &Response{}
 
 	// Check for cached version
 	cacheTag := r.cacheTag()
@@ -197,14 +197,14 @@ func (c *Client) GetCached(r *Request) (retresp Response, reterr error) {
 
 		return resp, nil
 	}
-	return resp, fmt.Errorf("Not Cached")
+	return resp, err
 }
 
 // Perform a request, usually called by the request itself.
 // User friendly error is enclosed in the response, returned error should be
 // for internal use only.
-func (c *Client) Do(r *Request) (retresp Response, reterr error) {
-	var resp Response
+func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
+	resp := &Response{}
 
 	// Check for cached version
 	cacheTag := r.cacheTag()

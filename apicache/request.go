@@ -41,14 +41,14 @@ func (r *Request) Set(key, value string) {
 // Perform a request.
 // User friendly error is enclosed in the response, returned error should be
 // for internal use only.
-func (r *Request) Do() (Response, error) {
+func (r *Request) Do() (*Response, error) {
 	return r.client.Do(r)
 }
 
 // Get the cached request, or return an error if not cached.
 // User friendly error is enclosed in the response, returned error should be
 // for internal use only.
-func (r *Request) GetCached() (Response, error) {
+func (r *Request) GetCached() (*Response, error) {
 	return r.client.GetCached(r)
 }
 
