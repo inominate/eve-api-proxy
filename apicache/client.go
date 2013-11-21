@@ -183,6 +183,23 @@ type Response struct {
 	HTTPCode int
 }
 
+func (c *Client) GetCached(r *Request) (retresp Response, reterr error) {
+	var resp Response
+
+	// Check for cached version
+	cacheTag := r.cacheTag()
+	httpCode, data, expires, err := c.cacher.Get(cacheTag)
+	if err == nil && !r.Force && !r.NoCache {
+		resp.Data = data
+		resp.FromCache = true
+		resp.Expires = expires
+		resp.HTTPCode = httpCode
+
+		return resp, nil
+	}
+	return resp, fmt.Errorf("Not Cached")
+}
+
 // Perform a request, usually called by the request itself.
 // User friendly error is enclosed in the response, returned error should be
 // for internal use only.

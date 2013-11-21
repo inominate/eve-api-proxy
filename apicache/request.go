@@ -45,6 +45,13 @@ func (r *Request) Do() (Response, error) {
 	return r.client.Do(r)
 }
 
+// Get the cached request, or return an error if not cached.
+// User friendly error is enclosed in the response, returned error should be
+// for internal use only.
+func (r *Request) GetCached() (Response, error) {
+	return r.client.GetCached(r)
+}
+
 // Generate a unique cache tag for this request.
 func (r *Request) cacheTag() string {
 	var keys []string
