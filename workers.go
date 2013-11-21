@@ -71,7 +71,7 @@ func worker(reqChan chan apiReq, workerID int) {
 		if useLog != 0 || resp.HTTPCode != 200 {
 			logParams := map[string]string{}
 			for k, _ := range req.params {
-				if strings.ToLower(k) == "vcode" {
+				if strings.ToLower(k) == "vcode" && useLog < 3 {
 					logParams[k] = req.params[k][0:8] + "..."
 				} else {
 					logParams[k] = req.params[k]
