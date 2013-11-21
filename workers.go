@@ -74,7 +74,7 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 		workerID = fmt.Sprintf("%d", resp.worker)
 	}
 
-	if useLog > 0 && apiResp.Error.ErrorCode != 0 {
+	if apiResp.Error.ErrorCode != 0 {
 		errorStr = fmt.Sprintf(" Error %d: %s", apiResp.Error.ErrorCode, apiResp.Error.ErrorText)
 	}
 	if useLog != 0 || apiResp.HTTPCode != 200 {
