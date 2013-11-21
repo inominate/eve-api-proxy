@@ -94,6 +94,7 @@ func worker(reqChan chan apiReq, workerID int) {
 		resp, err := req.apiReq.Do()
 		req.apiResp = resp
 		req.err = err
+		req.worker = workerID
 
 		req.respChan <- req
 		atomic.AddInt32(&activeWorkerCount, -1)
