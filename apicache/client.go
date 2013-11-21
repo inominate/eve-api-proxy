@@ -300,6 +300,12 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 	if err != nil {
 		return resp, ErrTime
 	}
+
+	// Minimum cache time of 5 minutes.
+	if time.Now().Add(5 * time.Minute).After(expires) {
+		expires = time.Now().Add(5 * time.Minute)
+	}
+
 	// Handle extended expiration requests.
 	if r.Expires.After(expires) {
 		resp.Expires = r.Expires

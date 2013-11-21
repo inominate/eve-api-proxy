@@ -58,7 +58,6 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 	// Don't send it to a worker if we can just yank it fromm the cache
 	apiResp, err := apireq.GetCached()
 	if err != nil {
-		log.Printf("No cache: %s", err)
 		respChan := make(chan apiReq)
 		req := apiReq{apiReq: apireq, respChan: respChan}
 		workChan <- req
