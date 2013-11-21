@@ -54,7 +54,6 @@ func (d *DiskCache) init() {
 				if len(filename) < 5 || filename[len(filename)-len(".xml"):] == ".xml" {
 					continue
 				}
-
 				fullname := dirName + "/" + filename
 
 				jsondata, err := ioutil.ReadFile(fullname)
@@ -172,7 +171,7 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 
 	ce, exists := d.cacheFiles[cacheTag]
 	if !exists || time.Now().After(ce.Expires) {
-		return 0, nil, ce.Expires, fmt.Errorf("Not cached. %v %v %v", exists, time.Now(), ce.Expires)
+		return 0, nil, ce.Expires, fmt.Errorf("Not cached.")
 	}
 
 	jsondata, err := ioutil.ReadFile(d.filename(cacheTag))
