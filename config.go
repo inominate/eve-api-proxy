@@ -25,7 +25,7 @@ var defaultConfig = configFile{
 
 func createConfig() configFile {
 	conf, _ := xml.MarshalIndent(defaultConfig, "", "  ")
-	ioutil.WriteFile("eveapiproxy.xml", conf, 0644)
+	ioutil.WriteFile("apiproxy.xml", conf, 0644)
 	return defaultConfig
 }
 
@@ -41,5 +41,8 @@ func loadConfig() configFile {
 		return createConfig()
 	}
 
+	if newConfig.CacheDir == "" {
+		panic("Need cache directory")
+	}
 	return newConfig
 }
