@@ -45,12 +45,14 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 	for k, v := range params {
 		apireq.Set(k, v)
 		// Show full vcode for log level 3
-		if strings.ToLower(k) == "vcode" && useLog < 3 {
-			paramVal = params[k][0:8] + "..."
-		} else {
-			paramVal = params[k]
+		if useLog > 0 {
+			if strings.ToLower(k) == "vcode" && useLog < 3 && len(params[k]) == 64 {
+				paramVal = params[k][0:8] + "..."
+			} else {
+				paramVal = params[k]
+			}
+			logParams = fmt.Sprintf("%s&%s=%s", logParams, k, paramVal)
 		}
-		logParams = fmt.Sprintf("%s&%s=%s", logParams, k, paramVal)
 	}
 	if logParams != "" {
 		logParams = "?" + logParams[1:]
