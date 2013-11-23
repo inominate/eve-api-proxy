@@ -45,14 +45,12 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 	for k, v := range params {
 		apireq.Set(k, v)
 		// Show full vcode for log level 3
-		if useLog > 0 {
-			if strings.ToLower(k) == "vcode" && useLog < 3 && len(params[k]) == 64 {
-				paramVal = params[k][0:8] + "..."
-			} else {
-				paramVal = params[k]
-			}
-			logParams = fmt.Sprintf("%s&%s=%s", logParams, k, paramVal)
+		if strings.ToLower(k) == "vcode" && useLog < 3 && len(params[k]) == 64 {
+			paramVal = params[k][0:8] + "..."
+		} else {
+			paramVal = params[k]
 		}
+		logParams = fmt.Sprintf("%s&%s=%s", logParams, k, paramVal)
 	}
 	if logParams != "" {
 		logParams = "?" + logParams[1:]
@@ -77,7 +75,7 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 	if apiResp.Error.ErrorCode != 0 {
 		errorStr = fmt.Sprintf(" Error %d: %s", apiResp.Error.ErrorCode, apiResp.Error.ErrorText)
 	}
-	if workerID != "C" && (useLog != 0 || apiResp.HTTPCode != 200) {
+	if (workerID != "C" || useLog != 0) && (useLog != 0 || apiResp.HTTPCode != 200) {
 		log.Printf("w%s: %s%s HTTP: %d Expires: %s%s", workerID, url, logParams, apiResp.HTTPCode, apiResp.Expires.Format("2006-01-02 15:04:05"), errorStr)
 	}
 
