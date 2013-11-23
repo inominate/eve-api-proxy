@@ -75,7 +75,7 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 	if apiResp.Error.ErrorCode != 0 {
 		errorStr = fmt.Sprintf(" Error %d: %s", apiResp.Error.ErrorCode, apiResp.Error.ErrorText)
 	}
-	if (workerID != "C" || useLog != 0) && (useLog != 0 || apiResp.HTTPCode != 200) {
+	if (workerID != "C" || useLog != 0) && (useLog >= 2 || apiResp.HTTPCode != 200) {
 		log.Printf("w%s: %s%s HTTP: %d Expires: %s%s", workerID, url, logParams, apiResp.HTTPCode, apiResp.Expires.Format("2006-01-02 15:04:05"), errorStr)
 	}
 
