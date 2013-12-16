@@ -40,20 +40,8 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 
 	// Build the request
 	apireq := apicache.NewRequest(url)
-	logParams := ""
-	var paramVal string
 	for k, v := range params {
 		apireq.Set(k, v)
-		// Show full vcode for log level 3
-		if strings.ToLower(k) == "vcode" && useLog < 3 && len(params[k]) == 64 {
-			paramVal = params[k][0:8] + "..."
-		} else {
-			paramVal = params[k]
-		}
-		logParams = fmt.Sprintf("%s&%s=%s", logParams, k, paramVal)
-	}
-	if logParams != "" {
-		logParams = "?" + logParams[1:]
 	}
 
 	workerID := "C"
@@ -76,7 +64,23 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 		errorStr = fmt.Sprintf(" Error %d: %s", apiResp.Error.ErrorCode, apiResp.Error.ErrorText)
 	}
 	if (workerID != "C" || useLog != 0) && (useLog >= 2 || apiResp.HTTPCode != 200) {
+		logParams := ""
+		var paramVal string
+		for k, _ := range params {
+			// Show full vcode for log level 3
+			if strings.ToLower(k) == "vcode" && useLog < 3 && len(params[k]) == 64 {
+				paramVal = params[k][0:8] + "..."
+			} else {
+				paramVal = params[k]
+			}
+			logParams = fmt.Sprintf("%s&%s=%s", logParams, k, paramVal)
+		}
+		if logParams != "" {
+			logParams = "?" + logParams[1:]
+		}
+
 		log.Printf("w%s: %s%s HTTP: %d Expires: %s%s", workerID, url, logParams, apiResp.HTTPCode, apiResp.Expires.Format("2006-01-02 15:04:05"), errorStr)
+		time.Sleep(2 * time.Second)
 	}
 
 	return apiResp.Data, apiResp.HTTPCode, err

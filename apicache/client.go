@@ -90,7 +90,7 @@ func NewClient(cacher Cacher) *Client {
 	var newClient Client
 
 	newClient.BaseURL = DefaultBaseURL
-	newClient.Retries = 3
+	newClient.Retries = 5
 	newClient.cacher = cacher
 
 	// Also sets up our initial http client
@@ -221,6 +221,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 	// If we're panicking, bail out early and spit back a fake error
 	c.RLock()
 	if c.panicUntil.After(time.Now()) {
+		log.Printf("Got Request, but we're currently panicing until %s", c.panicUntil.Format(sqlDateTime))
 		data := SynthesizeAPIError(c.panicCode, c.panicReason, c.panicUntil.Sub(time.Now()))
 		c.RUnlock()
 
@@ -264,7 +265,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 
 		httpResp, err = c.httpClient.PostForm(c.BaseURL+r.url, formValues)
 		if err != nil {
-			log.Printf("Error Connecting to API: %s", err)
+			log.Printf("Error Connecting to API, retrying: %s", err)
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -273,13 +274,13 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 		resp.HTTPCode = httpResp.StatusCode
 		data, err = ioutil.ReadAll(httpResp.Body)
 		if err != nil {
-			log.Printf("Error Reading from API: %s", err)
+			log.Printf("Error Reading from API, retrying: %s", err)
 			time.Sleep(1 * time.Second)
 			continue
 		}
 	}
 	if err != nil {
-		log.Printf("Failed to access api: %s - %#v", c.BaseURL+r.url, formValues)
+		log.Printf("Failed to access api, giving up: %s - %#v", c.BaseURL+r.url, formValues)
 		return resp, ErrNetwork
 	}
 
