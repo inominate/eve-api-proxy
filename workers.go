@@ -80,7 +80,7 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 		}
 
 		log.Printf("w%s: %s%s HTTP: %d Expires: %s%s", workerID, url, logParams, apiResp.HTTPCode, apiResp.Expires.Format("2006-01-02 15:04:05"), errorStr)
-		time.Sleep(2 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
 	return apiResp.Data, apiResp.HTTPCode, err

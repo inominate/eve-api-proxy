@@ -112,7 +112,7 @@ func (c *Client) SetTimeout(timeout time.Duration) {
 	c.httpClient = &http.Client{
 		Transport: &http.Transport{
 			Dial: func(netw, addr string) (net.Conn, error) {
-				deadline := time.Now().Add(timeout)
+				deadline := time.Now().Add(60 * time.Minute)
 				c, err := net.DialTimeout(netw, addr, timeout)
 				if err != nil {
 					return nil, err
@@ -120,6 +120,7 @@ func (c *Client) SetTimeout(timeout time.Duration) {
 				c.SetDeadline(deadline)
 				return c, nil
 			},
+			ResponseHeaderTimeout: timeout,
 		},
 	}
 }
