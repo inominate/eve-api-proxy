@@ -39,6 +39,8 @@ func main() {
 	log.Printf("Done.")
 
 	apicache.NewClient(dc)
+	apicache.SetMaxIdleConns(conf.Workers)
+
 	//	apicache.GetDefaultClient().Retries = 5
 	startWorkers()
 

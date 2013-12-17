@@ -57,7 +57,9 @@ type Client struct {
 	// Default three retries, can be changed at will.
 	Retries int
 
-	timeout    time.Duration
+	timeout      time.Duration
+	maxIdleConns int
+
 	cacher     Cacher
 	httpClient *http.Client
 
@@ -92,6 +94,7 @@ func NewClient(cacher Cacher) *Client {
 	newClient.BaseURL = DefaultBaseURL
 	newClient.Retries = 5
 	newClient.cacher = cacher
+	newClient.maxIdleConns = 2
 
 	// Also sets up our initial http client
 	newClient.SetTimeout(60 * time.Second)
@@ -102,6 +105,15 @@ func NewClient(cacher Cacher) *Client {
 	return &newClient
 }
 
+func (c *Client) SetMaxIdleConns(maxIdleConns int) {
+	// Enforce some sanity.
+	if maxIdleConns <= 0 || maxIdleConns >= 64 {
+		maxIdleConns = 2
+	}
+	c.maxIdleConns = maxIdleConns
+	c.newHttpClient()
+}
+
 // Set timeout for each API request.
 func (c *Client) SetTimeout(timeout time.Duration) {
 	if timeout.Seconds() <= 0 || timeout.Seconds() > 3600 {
@@ -109,25 +121,35 @@ func (c *Client) SetTimeout(timeout time.Duration) {
 	}
 
 	c.timeout = timeout
-	c.httpClient = &http.Client{
-		Transport: &http.Transport{
-			Dial: func(netw, addr string) (net.Conn, error) {
-				deadline := time.Now().Add(60 * time.Minute)
-				c, err := net.DialTimeout(netw, addr, timeout)
-				if err != nil {
-					return nil, err
-				}
-				c.SetDeadline(deadline)
-				return c, nil
-			},
-			ResponseHeaderTimeout: timeout,
-		},
-	}
+	c.newHttpClient()
+}
+
+// Set max idle conns for the default client
+func SetMaxIdleConns(maxIdleConns int) {
+	client.SetMaxIdleConns(maxIdleConns)
 }
 
 // Set timeout for default client.
 func SetTimeout(timeout time.Duration) {
 	client.SetTimeout(timeout)
+}
+
+func (c *Client) newHttpClient() {
+	c.httpClient = &http.Client{
+		Transport: &http.Transport{
+			Dial: func(netw, addr string) (net.Conn, error) {
+				//deadline := time.Now().Add(60 * time.Minute)
+				c, err := net.DialTimeout(netw, addr, c.timeout)
+				if err != nil {
+					return nil, err
+				}
+				//c.SetDeadline(deadline)
+				return c, nil
+			},
+			ResponseHeaderTimeout: c.timeout,
+			MaxIdleConnsPerHost:   c.maxIdleConns,
+		},
+	}
 }
 
 // Create a new request.
