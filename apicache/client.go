@@ -282,8 +282,6 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 	}()
 
 	//Post the shit, retry if necessary.
-	readBodyChan := make(chan []byte)
-	defer close(readBodyChan)
 
 	tries := 0
 	var httpResp *http.Response
@@ -310,11 +308,14 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 			}
 		}()
 
+		readBodyChan := make(chan []byte)
 		select {
 		case data = <-readBodyChan:
 		case <-time.After(c.timeout):
 			data = nil
 		}
+		close(readBodyChan)
+
 		if data == nil {
 			log.Printf("Error Reading from API, retrying: %s", err)
 			time.Sleep(3 * time.Second)
