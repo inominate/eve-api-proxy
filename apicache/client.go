@@ -299,25 +299,27 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 		resp.HTTPCode = httpResp.StatusCode
 
 		// We're going to do this asynchronously so we can time it out, AAAAAAA
+		readBodyChan := make(chan []byte)
 		go func() {
 			bytes, err := ioutil.ReadAll(httpResp.Body)
 			if err != nil {
+				log.Printf("Read error: %s", err)
 				readBodyChan <- nil
 			} else {
 				readBodyChan <- bytes
 			}
 		}()
 
-		readBodyChan := make(chan []byte)
 		select {
 		case data = <-readBodyChan:
 		case <-time.After(c.timeout):
+			log.Printf("Read timeout.")
 			data = nil
 		}
 		close(readBodyChan)
 
 		if data == nil {
-			log.Printf("Error Reading from API, retrying: %s", err)
+			log.Printf("Error Reading from API, retrying...")
 			time.Sleep(3 * time.Second)
 			continue
 		}
