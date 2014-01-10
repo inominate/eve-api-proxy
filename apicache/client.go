@@ -282,6 +282,9 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 	}()
 
 	//Post the shit, retry if necessary.
+	readBodyChan := make(chan []byte)
+	defer close(readBodyChan)
+
 	tries := 0
 	var httpResp *http.Response
 	for tries < c.Retries {
@@ -290,18 +293,36 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 		httpResp, err = c.httpClient.PostForm(c.BaseURL+r.url, formValues)
 		if err != nil {
 			log.Printf("Error Connecting to API, retrying: %s", err)
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 			continue
 		}
 		defer httpResp.Body.Close()
 
 		resp.HTTPCode = httpResp.StatusCode
-		data, err = ioutil.ReadAll(httpResp.Body)
-		if err != nil {
+
+		// We're going to do this asynchronously so we can time it out, AAAAAAA
+		go func() {
+			bytes, err := ioutil.ReadAll(httpResp.Body)
+			if err != nil {
+				readBodyChan <- nil
+			} else {
+				readBodyChan <- bytes
+			}
+		}()
+
+		select {
+		case data = <-readBodyChan:
+		case <-time.After(c.timeout):
+			data = nil
+		}
+		if data == nil {
 			log.Printf("Error Reading from API, retrying: %s", err)
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 			continue
 		}
+
+		break
+		log.Printf("WARNING MAJOR REGRESSION: This should NEVER appear.")
 	}
 	if err != nil {
 		log.Printf("Failed to access api, giving up: %s - %#v", c.BaseURL+r.url, formValues)
