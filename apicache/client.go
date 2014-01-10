@@ -280,6 +280,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 			}
 		}
 	}()
+
 	//Post the shit, retry if necessary.
 	tries := 0
 	var httpResp *http.Response

@@ -87,6 +87,7 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 }
 
 var logActive int32
+var workCount []int32
 
 func worker(reqChan chan apiReq, workerID int) {
 	time.Sleep(time.Duration(workerID) * time.Second)
@@ -101,9 +102,24 @@ func worker(reqChan chan apiReq, workerID int) {
 		req.worker = workerID
 
 		req.respChan <- req
+		atomic.AddInt32(&workCount[workerID], 1)
 		atomic.AddInt32(&activeWorkerCount, -1)
 	}
 	atomic.AddInt32(&workerCount, -1)
+}
+
+func watchDog(workers int) {
+	lastCount := make([]int32, workers)
+
+	for {
+		for i := 0; i < conf.Workers; i++ {
+			if lastCount[i] >= workCount[i] && workCount[i] != 0 {
+				log.Printf("Worker #%d appears to be stalled, %d counts.", i, workCount[i])
+			}
+			lastCount[i] = workCount[i]
+		}
+		time.Sleep(60 * time.Second)
+	}
 }
 
 var startWorkersOnce = &sync.Once{}
@@ -115,10 +131,12 @@ func startWorkers() {
 func realStartWorkers() {
 	log.Printf("Starting %d Workers...", conf.Workers)
 	workChan = make(chan apiReq)
+	workCount = make([]int32, conf.Workers)
 
 	for i := 0; i < conf.Workers; i++ {
 		go worker(workChan, i)
 	}
+	go watchDog(conf.Workers)
 }
 
 func stopWorkers() {
