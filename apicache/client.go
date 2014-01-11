@@ -22,8 +22,10 @@ Get your XML.
 package apicache
 
 import (
+	"crypto/rand"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -223,6 +225,12 @@ func (c *Client) GetCached(r *Request) (retresp *Response, reterr error) {
 	return resp, err
 }
 
+func MakeID() string {
+	buf := make([]byte, 5)
+	io.ReadFull(rand.Reader, buf)
+	return fmt.Sprintf("%x", buf)
+}
+
 // Perform a request, usually called by the request itself.
 // User friendly error is enclosed in the response, returned error should be
 // for internal use only.
@@ -299,27 +307,36 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 		resp.HTTPCode = httpResp.StatusCode
 
 		// We're going to do this asynchronously so we can time it out, AAAAAAA
-		readBodyChan := make(chan []byte)
+		type ioRead struct {
+			body []byte
+			err  error
+		}
+
+		readBodyChan := make(chan ioRead)
 		go func() {
 			bytes, err := ioutil.ReadAll(httpResp.Body)
-			if err != nil {
-				log.Printf("Read error: %s", err)
-				readBodyChan <- nil
-			} else {
-				readBodyChan <- bytes
-			}
+			readBodyChan <- ioRead{bytes, err}
+			close(readBodyChan)
 		}()
 
 		select {
-		case data = <-readBodyChan:
+		case readBody := <-readBodyChan:
+			err = readBody.err
+			data = readBody.body
 		case <-time.After(c.timeout):
-			log.Printf("Read timeout.")
 			data = nil
-		}
-		close(readBodyChan)
+			err = fmt.Errorf("read timed out after %d seconds", c.timeout.Seconds())
 
-		if data == nil {
-			log.Printf("Error Reading from API, retrying...")
+			// if ioutil ever does come back, let's handle it.
+			go func() {
+				id := MakeID()
+				log.Printf("zombie body read %s: %s ? %s", id, r.url, formValues)
+				rb := <-readBodyChan
+				log.Printf("zombie read completed %s: %s - %s ? %s\n%s", id, rb.err, r.url, formValues, rb.body)
+			}()
+		}
+		if err != nil {
+			log.Printf("Error Reading from API(%s), retrying...", err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
