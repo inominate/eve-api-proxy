@@ -110,7 +110,6 @@ func worker(reqChan chan apiReq, workerID int) {
 
 func watchDog(workers int) {
 	lastCount := make([]int32, workers)
-
 	for {
 		for i := 0; i < conf.Workers; i++ {
 			if lastCount[i] >= workCount[i] && workCount[i] != 0 {
@@ -150,6 +149,11 @@ func stopWorkers() {
 func PrintWorkerStats() {
 	active, loaded := GetWorkerStats()
 	log.Printf("%d workers idle, %d workers active.", loaded-active, active)
+
+	for i := 0; i < conf.Workers; i++ {
+		count := atomic.LoadInt32(&workCount[i])
+		log.Printf("   %d: %d", i, count)
+	}
 }
 
 func EnableVerboseLogging() int32 {
