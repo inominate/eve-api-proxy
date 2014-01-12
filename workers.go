@@ -150,7 +150,7 @@ func PrintWorkerStats() {
 	active, loaded := GetWorkerStats()
 	log.Printf("%d workers idle, %d workers active.", loaded-active, active)
 
-	for i := 0; i < atomic.LoadInt32(&activeWorkerCount); i++ {
+	for i := int32(0); i < atomic.LoadInt32(&activeWorkerCount); i++ {
 		count := atomic.LoadInt32(&workCount[i])
 		log.Printf("   %d: %d", i, count)
 	}
