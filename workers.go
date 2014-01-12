@@ -111,7 +111,7 @@ func worker(reqChan chan apiReq, workerID int) {
 func watchDog(workers int) {
 	lastCount := make([]int32, workers)
 	for {
-		for i := 0; i < atomic.LoadInt32(&workerCount); i++ {
+		for i := int32(0); i < atomic.LoadInt32(&workerCount); i++ {
 			if lastCount[i] >= workCount[i] && workCount[i] != 0 {
 				log.Printf("Worker #%d appears to be stalled, %d counts.", i, workCount[i])
 			}
