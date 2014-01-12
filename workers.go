@@ -111,7 +111,7 @@ func worker(reqChan chan apiReq, workerID int) {
 func watchDog(workers int) {
 	lastCount := make([]int32, workers)
 	for {
-		for i := 0; i < conf.Workers; i++ {
+		for i := 0; i < atomic.LoadInt32(&workerCount); i++ {
 			if lastCount[i] >= workCount[i] && workCount[i] != 0 {
 				log.Printf("Worker #%d appears to be stalled, %d counts.", i, workCount[i])
 			}
@@ -140,7 +140,7 @@ func realStartWorkers() {
 
 func stopWorkers() {
 	close(workChan)
-	for atomic.LoadInt32(&activeWorkerCount) > 0 {
+	for atomic.LoadInt32(&workerCount) > 0 {
 		time.Sleep(10 * time.Millisecond)
 	}
 	startWorkersOnce = &sync.Once{}
@@ -150,7 +150,7 @@ func PrintWorkerStats() {
 	active, loaded := GetWorkerStats()
 	log.Printf("%d workers idle, %d workers active.", loaded-active, active)
 
-	for i := int32(0); i < atomic.LoadInt32(&activeWorkerCount); i++ {
+	for i := int32(0); i < atomic.LoadInt32(&workerCount); i++ {
 		count := atomic.LoadInt32(&workCount[i])
 		log.Printf("   %d: %d", i, count)
 	}

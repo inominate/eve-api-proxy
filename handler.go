@@ -67,7 +67,7 @@ func (a APIHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if useLog >= 4 {
 		log.Printf("Request took: %.2f seconds.", time.Since(startTime).Seconds())
-	} else if useLog >= 2 && time.Since(startTime).Seconds() > 10 {
+	} else if useLog >= 1 && time.Since(startTime).Seconds() > 10 {
 		log.Printf("Slow Request took %.2f seconds:", time.Since(startTime).Seconds())
 		log.Printf("Request for %s: %+v", url, params)
 	}
