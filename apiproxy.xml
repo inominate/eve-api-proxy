@@ -1,0 +1,7 @@
+<configFile>
+  <Listen>:3748</Listen>
+  <Threads>0</Threads>
+  <Workers>5</Workers>
+  <LogFile>apiproxy.log</LogFile>
+  <CacheDir>cache</CacheDir>
+</configFile>
