@@ -325,7 +325,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 			data = readBody.body
 		case <-time.After(c.timeout):
 			data = nil
-			err = fmt.Errorf("read timed out after %d seconds", c.timeout.Seconds())
+			err = fmt.Errorf("read timed out after %f seconds", c.timeout.Seconds())
 
 			// if ioutil ever does come back, let's handle it.
 			go func() {
