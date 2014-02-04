@@ -108,19 +108,6 @@ func worker(reqChan chan apiReq, workerID int) {
 	atomic.AddInt32(&workerCount, -1)
 }
 
-func watchDog(workers int) {
-	lastCount := make([]int32, workers)
-	for {
-		for i := int32(0); i < atomic.LoadInt32(&workerCount); i++ {
-			if lastCount[i] >= workCount[i] && workCount[i] != 0 {
-				log.Printf("Worker #%d appears to be stalled, %d counts.", i, workCount[i])
-			}
-			lastCount[i] = workCount[i]
-		}
-		time.Sleep(60 * time.Second)
-	}
-}
-
 var startWorkersOnce = &sync.Once{}
 
 func startWorkers() {
@@ -135,7 +122,6 @@ func realStartWorkers() {
 	for i := 0; i < conf.Workers; i++ {
 		go worker(workChan, i)
 	}
-	go watchDog(conf.Workers)
 }
 
 func stopWorkers() {
