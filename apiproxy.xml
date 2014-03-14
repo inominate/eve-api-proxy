@@ -2,6 +2,8 @@
   <Listen>:3748</Listen>
   <Threads>0</Threads>
   <Workers>5</Workers>
+  <Retries>3</Retries>
+  <APITimeout>60</APITimeout>
   <LogFile>apiproxy.log</LogFile>
   <CacheDir>cache</CacheDir>
 </configFile>

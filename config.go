@@ -6,21 +6,25 @@ import (
 )
 
 type configFile struct {
-	Listen   string
-	Threads  int
-	Workers  int
-	LogFile  string
-	CacheDir string
+	Listen     string
+	Threads    int
+	Workers    int
+	Retries    int
+	APITimeout int
+	LogFile    string
+	CacheDir   string
 }
 
 var conf = loadConfig()
 
 var defaultConfig = configFile{
-	Listen:   "127.0.0.1:3748",
-	Threads:  0,
-	Workers:  10,
-	LogFile:  "",
-	CacheDir: "",
+	Listen:     "127.0.0.1:3748",
+	Threads:    0,
+	Workers:    10,
+	Retries:    3,
+	APITimeout: 60,
+	LogFile:    "",
+	CacheDir:   "",
 }
 
 func createConfig() configFile {
@@ -35,7 +39,7 @@ func loadConfig() configFile {
 		return createConfig()
 	}
 
-	var newConfig configFile
+	newConfig := defaultConfig
 	err = xml.Unmarshal(conf, &newConfig)
 	if err != nil {
 		return createConfig()
