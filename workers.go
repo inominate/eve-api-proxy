@@ -30,7 +30,7 @@ var workChan chan apiReq
 var apiClient apicache.Client
 var activeWorkerCount, workerCount int32
 
-func APIReq(url string, params map[string]string) ([]byte, int, error) {
+func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 	var errorStr string
 
 	if atomic.LoadInt32(&workerCount) <= 0 {
@@ -41,13 +41,20 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 	// Build the request
 	apireq := apicache.NewRequest(url)
 	for k, v := range params {
-		apireq.Set(k, v)
+		switch k {
+		case "force":
+			if v != "" {
+				apireq.Force = true
+			}
+		default:
+			apireq.Set(k, v)
+		}
 	}
 
 	workerID := "C"
 	// Don't send it to a worker if we can just yank it fromm the cache
 	apiResp, err := apireq.GetCached()
-	if err != nil {
+	if err != nil || apireq.Force {
 		respChan := make(chan apiReq)
 		req := apiReq{apiReq: apireq, respChan: respChan}
 		workChan <- req
@@ -81,20 +88,17 @@ func APIReq(url string, params map[string]string) ([]byte, int, error) {
 
 		log.Printf("w%s: %s%s HTTP: %d Expires: %s%s", workerID, url, logParams, apiResp.HTTPCode, apiResp.Expires.Format("2006-01-02 15:04:05"), errorStr)
 		if apiResp.HTTPCode != 200 {
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
-		time.Sleep(5 * time.Second)
 	}
 
-	return apiResp.Data, apiResp.HTTPCode, err
+	return apiResp, err
 }
 
 var logActive int32
 var workCount []int32
 
 func worker(reqChan chan apiReq, workerID int) {
-	time.Sleep(time.Duration(workerID) * time.Second)
-
 	atomic.AddInt32(&workerCount, 1)
 	for req := range reqChan {
 		atomic.AddInt32(&activeWorkerCount, 1)

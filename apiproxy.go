@@ -45,7 +45,7 @@ func main() {
 
 	startWorkers()
 
-	var handler APIHandler
+	var handler APIMux
 
 	server := http.Server{
 		Addr:         conf.Listen,
