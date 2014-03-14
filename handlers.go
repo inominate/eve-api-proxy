@@ -28,14 +28,11 @@ func apiKeyInfoHandler(w http.ResponseWriter, req *http.Request) {
 
 	// :ccp: 221's come up for no reason and need to be ignored
 	if err == nil && resp.Error.ErrorCode == 221 {
-		log.Printf("Got 221, trying %d max times", conf.Retries)
 		params["force"] = "true"
 
 		for i := 0; i < conf.Retries; i++ {
-			log.Printf("Retrying #%d...", i)
 			resp, err = APIReq(url, params)
 			if resp.Error.ErrorCode != 221 || err != nil {
-				log.Printf("Got an out: %d - %s", resp.Error.ErrorCode, err)
 				break
 			}
 		}
