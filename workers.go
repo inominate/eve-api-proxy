@@ -74,6 +74,10 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 		logParams := ""
 		var paramVal string
 		for k, _ := range params {
+			if k == "force" {
+				continue
+			}
+
 			// Show full vcode for log level 3
 			if strings.ToLower(k) == "vcode" && useLog < 3 && len(params[k]) == 64 {
 				paramVal = params[k][0:8] + "..."
