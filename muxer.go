@@ -47,7 +47,6 @@ func (a APIMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/xml")
 	if handler, valid := validPages[strings.ToLower(url)]; valid {
 		if handler == nil {
-			log.Printf("nil handler found, forcing default.")
 			handler = defaultHandler
 		}
 
