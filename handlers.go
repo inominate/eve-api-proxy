@@ -21,7 +21,6 @@ func makeParams(req *http.Request) map[string]string {
 }
 
 func apiKeyInfoHandler(w http.ResponseWriter, req *http.Request) {
-	log.Printf("KeyInfo Handler...")
 	url := path.Clean(req.URL.Path)
 
 	params := makeParams(req)
@@ -51,7 +50,6 @@ func apiKeyInfoHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func defaultHandler(w http.ResponseWriter, req *http.Request) {
-	log.Printf("Default Handler...")
 	url := path.Clean(req.URL.Path)
 
 	params := makeParams(req)
