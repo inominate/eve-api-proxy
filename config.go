@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/xml"
+	"io"
 	"io/ioutil"
 )
 
@@ -13,9 +15,16 @@ type configFile struct {
 	APITimeout int
 	LogFile    string
 	CacheDir   string
+	Secret     string
 }
 
 var conf = loadConfig()
+
+func genSecret() string {
+	buf := make([]byte, 32)
+	io.ReadFull(rand.Reader, buf)
+	return fmt.Sprintf("%x", buf)
+}
 
 var defaultConfig = configFile{
 	Listen:     "127.0.0.1:3748",
@@ -29,6 +38,8 @@ var defaultConfig = configFile{
 
 func createConfig() configFile {
 	conf, _ := xml.MarshalIndent(defaultConfig, "", "  ")
+	conf.Secret = genSecret()
+
 	ioutil.WriteFile("apiproxy.xml", conf, 0644)
 	return defaultConfig
 }
