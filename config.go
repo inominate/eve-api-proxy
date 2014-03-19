@@ -54,7 +54,8 @@ var defaultConfig = configFile{
 }
 
 func createConfig() {
-	defaultConfig.Secret = genSecret()
+	//  Secret for eventual control code
+	//	defaultConfig.Secret = genSecret()
 	confXML, _ := xml.MarshalIndent(defaultConfig, "", "  ")
 
 	err := ioutil.WriteFile("apiproxy.xml.default", confXML, 0600)
