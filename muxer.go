@@ -101,7 +101,7 @@ func (a APIMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.Write(apicache.SynthesizeAPIError(404, "Invalid API page.", 24*time.Hour))
 	}
 
-	if conf.Logging.LogRequests || resp.HTTPCode != 200 {
+	if conf.Logging.LogRequests || (resp != nil && resp.HTTPCode != 200) {
 		logRequest(req, url, params, resp, startTime)
 	}
 
