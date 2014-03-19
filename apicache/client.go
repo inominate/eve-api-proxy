@@ -142,7 +142,6 @@ func (c *Client) newHttpClient() {
 	c.httpClient = &http.Client{
 		Transport: &http.Transport{
 			Dial: func(netw, addr string) (net.Conn, error) {
-				//deadline := time.Now().Add(60 * time.Minute)
 				c, err := net.DialTimeout(netw, addr, c.timeout)
 				if err != nil {
 					return nil, err
@@ -278,7 +277,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 	defer func() {
 		if reterr != nil {
 			resp.HTTPCode = 504
-			resp.Data = SynthesizeAPIError(500, "APIProxy Error: "+reterr.Error(), 15*time.Minute)
+			resp.Data = SynthesizeAPIError(500, "APIProxy Error: "+reterr.Error(), 5*time.Minute)
 		} else if resp.Data == nil {
 			resp.HTTPCode = 504
 			resp.Data = SynthesizeAPIError(900, "This shouldn't happen.", 15*time.Minute)
@@ -367,11 +366,6 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 	expires, err = time.Parse(sqlDateTime, cR.CachedUntil)
 	if err != nil {
 		return resp, ErrTime
-	}
-
-	// Minimum cache time of 5 minutes.
-	if time.Now().Add(5 * time.Minute).After(expires) {
-		expires = time.Now().Add(5 * time.Minute)
 	}
 
 	// Handle extended expiration requests.
