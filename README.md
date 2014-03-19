@@ -36,7 +36,7 @@ to point to one.
 
 ``` bash
 mkdir ~/go
-export GOPATH=~/g
+export GOPATH=~/go
 ```
 
 ### Running the Proxy ####
