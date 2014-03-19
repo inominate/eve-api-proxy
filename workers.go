@@ -1,8 +1,8 @@
 package main
 
 import (
-	"apiproxy/apicache"
 	"fmt"
+	"github.com/inominate/eve-api-proxy/apicache"
 	"log"
 	"strings"
 	"sync"
@@ -10,11 +10,16 @@ import (
 	"time"
 )
 
+var apiClient apicache.Client
+
+// worker tracking
+var activeWorkerCount, workerCount int32
+var workCount []int32
+
 type apiReq struct {
 	apiReq  *apicache.Request
 	apiResp *apicache.Response
 
-	data   []byte
 	apiErr apicache.APIError
 
 	expires time.Time
@@ -25,10 +30,8 @@ type apiReq struct {
 	respChan chan apiReq
 }
 
+// Channel for sending jobs to workers
 var workChan chan apiReq
-
-var apiClient apicache.Client
-var activeWorkerCount, workerCount int32
 
 func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 	var errorStr string
@@ -36,7 +39,6 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 	if atomic.LoadInt32(&workerCount) <= 0 {
 		panic("No workers!")
 	}
-	useLog := atomic.LoadInt32(&logActive)
 
 	// Build the request
 	apireq := apicache.NewRequest(url)
@@ -67,19 +69,15 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 		workerID = fmt.Sprintf("%d", resp.worker)
 	}
 
-	if apiResp.Error.ErrorCode != 0 {
-		errorStr = fmt.Sprintf(" Error %d: %s", apiResp.Error.ErrorCode, apiResp.Error.ErrorText)
-	}
-	if (workerID != "C" || useLog != 0) && (useLog >= 2 || apiResp.HTTPCode != 200) {
+	// This is similar to the request log, but knows more about where it came from.
+	if debug {
+		if apiResp.Error.ErrorCode != 0 {
+			errorStr = fmt.Sprintf(" Error %d: %s", apiResp.Error.ErrorCode, apiResp.Error.ErrorText)
+		}
 		logParams := ""
 		var paramVal string
 		for k, _ := range params {
-			if k == "force" {
-				continue
-			}
-
-			// Show full vcode for log level 3
-			if strings.ToLower(k) == "vcode" && useLog < 3 && len(params[k]) == 64 {
+			if conf.Logging.CensorLog && strings.ToLower(k) == "vcode" && len(params[k]) > 8 {
 				paramVal = params[k][0:8] + "..."
 			} else {
 				paramVal = params[k]
@@ -90,17 +88,10 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 			logParams = "?" + logParams[1:]
 		}
 
-		log.Printf("w%s: %s%s HTTP: %d Expires: %s%s", workerID, url, logParams, apiResp.HTTPCode, apiResp.Expires.Format("2006-01-02 15:04:05"), errorStr)
-		if apiResp.HTTPCode != 200 {
-			time.Sleep(1 * time.Second)
-		}
+		debugLog.Printf("w%s: %s%s HTTP: %d Expires: %s%s", workerID, url, logParams, apiResp.HTTPCode, apiResp.Expires.Format("2006-01-02 15:04:05"), errorStr)
 	}
-
 	return apiResp, err
 }
-
-var logActive int32
-var workCount []int32
 
 func worker(reqChan chan apiReq, workerID int) {
 	atomic.AddInt32(&workerCount, 1)
@@ -130,7 +121,8 @@ func realStartWorkers() {
 	workChan = make(chan apiReq)
 	workCount = make([]int32, conf.Workers)
 
-	for i := 0; i < conf.Workers; i++ {
+	for i := 1; i <= conf.Workers; i++ {
+		debugLog.Printf("Starting worker #%d.", i)
 		go worker(workChan, i)
 	}
 }
@@ -151,16 +143,6 @@ func PrintWorkerStats() {
 		count := atomic.LoadInt32(&workCount[i])
 		log.Printf("   %d: %d", i, count)
 	}
-}
-
-func EnableVerboseLogging() int32 {
-	newLog := atomic.AddInt32(&logActive, 1)
-	return newLog
-}
-
-func DisableVerboseLogging() {
-	useLog := atomic.LoadInt32(&logActive)
-	atomic.AddInt32(&logActive, -useLog)
 }
 
 func GetWorkerStats() (int32, int32) {

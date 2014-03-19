@@ -1,29 +1,16 @@
 package main
 
 import (
-	"log"
-	"net/http"
-	"path"
+	"github.com/inominate/eve-api-proxy/apicache"
 )
 
-type APIHandler func(w http.ResponseWriter, req *http.Request)
+// Prototype for page specific handlers.
+type APIHandler func(url string, params map[string]string) *apicache.Response
 
-func makeParams(req *http.Request) map[string]string {
-	params := make(map[string]string)
-	for key, val := range req.Form {
-		params[key] = val[0]
-	}
-
-	// force is for internal use only!
-	params["force"] = ""
-
-	return params
-}
-
-func apiKeyInfoHandler(w http.ResponseWriter, req *http.Request) {
-	url := path.Clean(req.URL.Path)
-
-	params := makeParams(req)
+// Bug Correcting Handler for APIKeyInfo.xml.aspx
+// API occasionally returns 221s for no reason, retry automatically when we
+// run into one of them.
+func apiKeyInfoHandler(url string, params map[string]string) *apicache.Response {
 	resp, err := APIReq(url, params)
 
 	// :ccp: 221's come up for no reason and need to be ignored
@@ -39,28 +26,26 @@ func apiKeyInfoHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err != nil {
-		log.Printf("Handler Error for %s: %s - %+v", err, url, params)
+		debugLog.Printf("API Error %s: %s - %+v", err, url, params)
 	}
-
-	w.WriteHeader(resp.HTTPCode)
-	w.Write(resp.Data)
+	return resp
 }
 
-func defaultHandler(w http.ResponseWriter, req *http.Request) {
-	url := path.Clean(req.URL.Path)
-
-	params := makeParams(req)
+// A default API handler, does a straight pull with no mangling.
+func defaultHandler(url string, params map[string]string) *apicache.Response {
 	resp, err := APIReq(url, params)
-	if err != nil {
-		log.Printf("Handler Error for %s: %s - %+v", err, url, params)
-	}
 
-	w.WriteHeader(resp.HTTPCode)
-	w.Write(resp.Data)
+	if err != nil {
+		debugLog.Printf("API Error %s: %s - %+v", err, url, params)
+	}
+	return resp
 }
 
-// nil handlers will attempt to use defaultHandler
+// Defines valid API pages and what special handler they should use.
+// nil handlers will attempt to use defaultHandler which is a straight
+// passthrough.
 var validPages = map[string]APIHandler{
+	//	"/control/":                             controlHandler,
 	"/account/accountstatus.xml.aspx":       nil,
 	"/account/apikeyinfo.xml.aspx":          apiKeyInfoHandler,
 	"/account/characters.xml.aspx":          nil,

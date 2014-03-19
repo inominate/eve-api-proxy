@@ -102,7 +102,7 @@ func (d *DiskCache) clean() {
 
 func (d *DiskCache) expiredPurger() {
 	for {
-		//log.Printf("Cleaning Up.")
+		debugLog.Printf("Cleaning Up.")
 		now := time.Now()
 
 		d.Lock()
@@ -117,9 +117,9 @@ func (d *DiskCache) expiredPurger() {
 			}
 		}
 		d.Unlock()
-		//log.Printf("Collected %d expired entries.", collectcount)
+		debugLog.Printf("Collected %d expired entries.", collectcount)
 
-		time.Sleep(5 * time.Minute)
+		time.Sleep(30 * time.Minute)
 	}
 }
 

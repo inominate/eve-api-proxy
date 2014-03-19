@@ -37,6 +37,8 @@ import (
 
 const sqlDateTime = "2006-01-02 15:04:05"
 
+var DebugLog = log.New(ioutil.Discard, "apicache", log.Ldate|log.Ltime)
+
 //
 //  API Error Type, hopefully contains the error code and some useful information.
 //  This is CCP so nothing is guaranteed.
@@ -252,7 +254,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 	// If we're panicking, bail out early and spit back a fake error
 	c.RLock()
 	if c.panicUntil.After(time.Now()) {
-		log.Printf("Got Request, but we're currently panicing until %s", c.panicUntil.Format(sqlDateTime))
+		DebugLog.Printf("Got Request, but we're currently panicing until %s", c.panicUntil.Format(sqlDateTime))
 		data := SynthesizeAPIError(c.panicCode, c.panicReason, c.panicUntil.Sub(time.Now()))
 		c.RUnlock()
 
@@ -298,7 +300,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 
 		httpResp, err = c.httpClient.PostForm(c.BaseURL+r.url, formValues)
 		if err != nil {
-			log.Printf("Error Connecting to API, retrying: %s", err)
+			DebugLog.Printf("Error Connecting to API, retrying: %s", err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
@@ -330,13 +332,13 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 			// if ioutil ever does come back, let's handle it.
 			go func() {
 				id := MakeID()
-				log.Printf("zombie body read %s: %s ? %s", id, r.url, formValues)
+				DebugLog.Printf("zombie body read %s: %s ? %s", id, r.url, formValues)
 				rb := <-readBodyChan
-				log.Printf("zombie read completed %s: %s - %s ? %s\n%s", id, rb.err, r.url, formValues, rb.body)
+				DebugLog.Printf("zombie read completed %s: %s - %s ? %s\n%s", id, rb.err, r.url, formValues, rb.body)
 			}()
 		}
 		if err != nil {
-			log.Printf("Error Reading from API(%s), retrying...", err)
+			DebugLog.Printf("Error Reading from API(%s), retrying...", err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
@@ -345,7 +347,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 		log.Printf("WARNING MAJOR REGRESSION: This should NEVER appear.")
 	}
 	if err != nil {
-		log.Printf("Failed to access api, giving up: %s - %#v", c.BaseURL+r.url, formValues)
+		DebugLog.Printf("Failed to access api, giving up: %s - %#v", c.BaseURL+r.url, formValues)
 		return resp, ErrNetwork
 	}
 
@@ -357,7 +359,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 	var cR cacheResp
 	err = xml.Unmarshal(data, &cR)
 	if err != nil {
-		log.Printf("XML Error: %s", err)
+		DebugLog.Printf("XML Error: %s", err)
 		return resp, ErrXML
 	}
 

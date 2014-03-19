@@ -3,22 +3,37 @@ package main
 import (
 	"crypto/rand"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 )
 
 type configFile struct {
-	Listen     string
-	Threads    int
-	Workers    int
-	Retries    int
-	APITimeout int
-	LogFile    string
-	CacheDir   string
-	Secret     string
+	Listen               string
+	Threads              int
+	Workers              int
+	Retries              int
+	APITimeout           int
+	CacheDir             string
+	FastStart            bool
+	Secret               string `xml:",omitempty"`
+	ProxyAddr            string `xml:",omitempty"`
+	RealRemoteAddrHeader string `xml:",omitempty"`
+	Logging              logConfig
 }
 
-var conf = loadConfig()
+type logConfig struct {
+	LogFile string
+
+	Debug        bool
+	DebugLogFile string
+
+	LogRequests bool
+	CensorLog   bool
+}
+
+var conf configFile
 
 func genSecret() string {
 	buf := make([]byte, 32)
@@ -32,32 +47,43 @@ var defaultConfig = configFile{
 	Workers:    10,
 	Retries:    3,
 	APITimeout: 60,
-	LogFile:    "",
-	CacheDir:   "",
+	CacheDir:   "cache/",
+	Logging: logConfig{
+		CensorLog: true,
+	},
 }
 
-func createConfig() configFile {
-	conf, _ := xml.MarshalIndent(defaultConfig, "", "  ")
-	conf.Secret = genSecret()
+func createConfig() {
+	defaultConfig.Secret = genSecret()
+	confXML, _ := xml.MarshalIndent(defaultConfig, "", "  ")
 
-	ioutil.WriteFile("apiproxy.xml", conf, 0644)
-	return defaultConfig
-}
-
-func loadConfig() configFile {
-	conf, err := ioutil.ReadFile("apiproxy.xml")
+	err := ioutil.WriteFile("apiproxy.xml.default", confXML, 0600)
 	if err != nil {
-		return createConfig()
+		log.Fatalf("Error creating config file apiproxy.xml.default: %s", err)
+	} else {
+		log.Fatalf("Created new config file apiproxy.xml.default")
+	}
+}
+
+func loadConfig(filename string) (configFile, error) {
+	conf, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return defaultConfig, err
 	}
 
 	newConfig := defaultConfig
 	err = xml.Unmarshal(conf, &newConfig)
 	if err != nil {
-		return createConfig()
+		return defaultConfig, err
 	}
 
 	if newConfig.CacheDir == "" {
-		panic("Need cache directory")
+		return defaultConfig, fmt.Errorf("Need cache directory")
 	}
-	return newConfig
+
+	if newConfig.Logging.Debug {
+		debug = true
+	}
+
+	return newConfig, nil
 }

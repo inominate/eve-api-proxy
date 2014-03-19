@@ -44,19 +44,19 @@ func SQLCacher(db *sql.DB) (*sqlCache, error) {
 
 	c.getStmt, err = db.Prepare("select data, httpCode, expires from apicache where cacheid = ? and expires > utc_timestamp()")
 	if err != nil {
-		log.Printf("Err1: %s", err)
+		log.Printf("Error Preparing SQL cache get: %s", err)
 		return nil, err
 	}
 
 	c.storeStmt, err = db.Prepare("replace into apicache (`cacheid`, `httpCode`, `data`, `expires`) VALUES (?, ?, ?, ?)")
 	if err != nil {
-		log.Printf("Err2: %s", err)
+		log.Printf("Error Preparing SQL cache store: %s", err)
 		return nil, err
 	}
 
 	c.cleanUpStmt, err = db.Prepare("delete from apicache where expires < utc_timestamp()")
 	if err != nil {
-		log.Printf("Err3: %s", err)
+		log.Printf("Error Preparing SQL cache cleanup: %s", err)
 		return nil, err
 	}
 
@@ -101,7 +101,7 @@ type nilCache struct{}
 var NilCache = new(nilCache)
 
 func (c *nilCache) Store(cacheTag string, httpCode int, data []byte, expires time.Time) error {
-	log.Printf("Pretending to store %s  code: %d expires %s", cacheTag, httpCode, expires)
+	DebugLog.Printf("Pretending to store %s  code: %d expires %s", cacheTag, httpCode, expires)
 	return nil
 }
 func (c *nilCache) Get(cacheTag string) (int, []byte, time.Time, error) {
