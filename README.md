@@ -1,6 +1,6 @@
 # EVE-Online API Proxy #
 
-This is a simply proxy intended for high volume access of the EVE Online API by
+This is a simple proxy intended for high volume access of the EVE Online API by
 scripts and programs too trivial to justify dealing with CCP's caching rules.
 
 ### Features ###
