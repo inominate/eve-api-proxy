@@ -119,7 +119,7 @@ func startWorkers() {
 func realStartWorkers() {
 	log.Printf("Starting %d Workers...", conf.Workers)
 	workChan = make(chan apiReq)
-	workCount = make([]int32, conf.Workers)
+	workCount = make([]int32, conf.Workers+1)
 
 	for i := 1; i <= conf.Workers; i++ {
 		debugLog.Printf("Starting worker #%d.", i)
