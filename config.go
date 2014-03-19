@@ -26,11 +26,11 @@ type configFile struct {
 type logConfig struct {
 	LogFile string
 
-	Debug        bool
-	DebugLogFile string
-
 	LogRequests bool
 	CensorLog   bool
+
+	Debug        bool
+	DebugLogFile string
 }
 
 var conf configFile
