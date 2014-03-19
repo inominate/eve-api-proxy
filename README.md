@@ -64,49 +64,49 @@ code 504, to indicate an inability to connect to the API.
 
 ### Configuration File ###
 
-#### `Listen`
+##### `Listen`
 In the form of ip:port, or :port to listen on all interfaces.  Currently only
 supports a single bind point.  Default is localhost:3748.
 
-#### `Workers`
+##### `Workers`
 Number of workers to run processing requests, each worker tries to maintain its
 own semi-permanent connection to the API. Default is 10.
 
-#### `Retries`
+##### `Retries`
 The number of times to retry the API in case of a connection issue. Default is
 3.
 
-#### `APITimeout`
+##### `APITimeout`
 The maximum length of time in seconds that any single request to the API should
 take. Default is 60 seconds and should probably be increased in the case of
 slow connections pulling large blocks of XML.
 
-#### `CacheDir`
+##### `CacheDir`
 The directory in which cached API data will be stored.  Default is ./cache/
 
-#### `FastStart`
+##### `FastStart`
 Fast start mode will clear the cache on startup instead of reloading it.
 Should only be used for debugging when the proxy needs to be restarted with a
 very large cache.
 
-#### `Threads`
+##### `Threads`
 Sets the number of operating system threads to run simultaneously. This is an
 internal Go setting and unrelated to the number of simultaneous workers. A
 setting of 0 will use one thread per available logical CPU. This should
 virtually never be anything other than 0 or 1.  Default is 0.
 
-#### `LogFile`
+##### `LogFile`
 File to use for general logging. Default is blank and will use stdout.
 
-#### `LogRequests`
+##### `LogRequests`
 Log all requests instead of just reporting problems. Default is false.
 
-#### `CensorLog`
+##### `CensorLog`
 Remove most of the vCode from the logs for privacy reasons. Default is true.
 
-#### `Debug`
+##### `Debug`
 Enable debugging logging. Default is false.
 
-#### `DebugLogFile`
+##### `DebugLogFile`
 File to use for debugging. Can be the same as LogFile. Default is blank and will use stdout.
 
