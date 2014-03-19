@@ -16,8 +16,9 @@ Set any options you may need, including keyid/vcode.
 	req.Set("charactername", "innominate")
 	req.Set("characterid", fmt.Sprintf("%d", 123))
 
-Get your XML.
-	xml, err := req.Do()
+Get your response.
+	resp, err := req.Do()
+	xml := resp.Data
 */
 package apicache
 
@@ -189,6 +190,7 @@ type cacheResp struct {
 	CachedUntil string   `xml:"cachedUntil"`
 }
 
+// Data structure returned from the API.
 type Response struct {
 	// Raw XML data
 	Data []byte
