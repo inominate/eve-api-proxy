@@ -223,6 +223,23 @@ func (c *Client) GetCached(r *Request) (retresp *Response, reterr error) {
 		resp.Expires = expires
 		resp.HTTPCode = httpCode
 
+		var cR cacheResp
+		err = xml.Unmarshal(data, &cR)
+		if err != nil {
+			DebugLog.Printf("XML Error: %s", err)
+			return resp, ErrXML
+		}
+
+		// Handle extended expiration requests.
+		if r.Expires.After(expires) {
+			resp.Expires = r.Expires
+		} else {
+			resp.Expires = expires
+		}
+
+		// Pass on any API errors
+		resp.Error = cR.Error
+
 		return resp, nil
 	}
 	return resp, err
@@ -238,17 +255,14 @@ func MakeID() string {
 // User friendly error is enclosed in the response, returned error should be
 // for internal use only.
 func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
-	resp := &Response{}
+	var data []byte
+	var expires time.Time
+
+	cacheTag := r.cacheTag()
 
 	// Check for cached version
-	cacheTag := r.cacheTag()
-	httpCode, data, expires, err := c.cacher.Get(cacheTag)
-	if err == nil && !r.Force && !r.NoCache {
-		resp.Data = data
-		resp.FromCache = true
-		resp.Expires = expires
-		resp.HTTPCode = httpCode
-
+	resp, err := c.GetCached(r)
+	if err == nil {
 		return resp, nil
 	}
 
