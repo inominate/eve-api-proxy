@@ -242,7 +242,7 @@ func (c *Client) GetCached(r *Request) (retresp *Response, reterr error) {
 
 		return resp, nil
 	}
-	return resp, err
+	return nil, err
 }
 
 func MakeID() string {
