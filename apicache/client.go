@@ -25,6 +25,7 @@ package apicache
 import (
 	"crypto/rand"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -213,11 +214,14 @@ type Response struct {
 
 func (c *Client) GetCached(r *Request) (retresp *Response, reterr error) {
 	resp := &Response{}
+	if r.Force {
+		return resp, errors.New("cache bypass forced")
+	}
 
 	// Check for cached version
 	cacheTag := r.cacheTag()
 	httpCode, data, expires, err := c.cacher.Get(cacheTag)
-	if err == nil && !r.Force && !r.NoCache {
+	if err == nil && !r.Force {
 		resp.Data = data
 		resp.FromCache = true
 		resp.Expires = expires
@@ -242,7 +246,7 @@ func (c *Client) GetCached(r *Request) (retresp *Response, reterr error) {
 
 		return resp, nil
 	}
-	return nil, err
+	return resp, err
 }
 
 func MakeID() string {
