@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/inominate/eve-api-proxy/apicache"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/inominate/eve-api-proxy/apicache"
 )
 
 type APIMux struct{}
@@ -82,6 +84,11 @@ func (a APIMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 
 	url := path.Clean(req.URL.Path)
+	if url == "/stats" {
+		statsHandler(w, req)
+		return
+	}
+
 	params := makeParams(req)
 
 	debugLog.Printf("Starting request for %s...", url)
@@ -111,15 +118,22 @@ func (a APIMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func LogStats() {
-	PrintWorkerStats()
-	dc.LogStats()
-	LogMemStats()
+func statsHandler(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	LogStats(w)
 }
 
-func LogMemStats() {
+func LogStats(w io.Writer) {
+	PrintWorkerStats(w)
+	fmt.Fprintln(w, "")
+	dc.LogStats(w)
+	fmt.Fprintln(w, "")
+	LogMemStats(w)
+}
+
+func LogMemStats(w io.Writer) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	log.Printf("Alloc: %dkb Sys: %dkb", m.Alloc/1024, m.Sys/1024)
-	log.Printf("HeapAlloc: %dkb HeapSys: %dkb", m.HeapAlloc/1024, m.HeapSys/1024)
+	fmt.Fprintf(w, "Alloc: %dkb Sys: %dkb\n", m.Alloc/1024, m.Sys/1024)
+	fmt.Fprintf(w, "HeapAlloc: %dkb HeapSys: %dkb\n", m.HeapAlloc/1024, m.HeapSys/1024)
 }

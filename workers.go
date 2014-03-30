@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/inominate/eve-api-proxy/apicache"
+	"io"
 	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/inominate/eve-api-proxy/apicache"
 )
 
 var apiClient apicache.Client
@@ -135,13 +137,13 @@ func stopWorkers() {
 	startWorkersOnce = &sync.Once{}
 }
 
-func PrintWorkerStats() {
+func PrintWorkerStats(w io.Writer) {
 	active, loaded := GetWorkerStats()
-	log.Printf("%d workers idle, %d workers active.", loaded-active, active)
+	fmt.Fprintf(w, "%d workers idle, %d workers active.\n", loaded-active, active)
 
 	for i := int32(0); i < atomic.LoadInt32(&workerCount); i++ {
 		count := atomic.LoadInt32(&workCount[i])
-		log.Printf("   %d: %d", i, count)
+		fmt.Fprintf(w, "   %d: %d\n", i, count)
 	}
 }
 

@@ -3,9 +3,10 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/inominate/eve-api-proxy/apicache"
 	"strings"
 	"sync"
+
+	"github.com/inominate/eve-api-proxy/apicache"
 )
 
 // Prototype for page specific handlers.

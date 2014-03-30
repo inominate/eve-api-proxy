@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -210,7 +211,7 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 	return ce.HTTPCode, data, ce.Expires, nil
 }
 
-func (d *DiskCache) LogStats() {
+func (d *DiskCache) LogStats(w io.Writer) {
 	d.RLock()
 	defer d.RUnlock()
 
@@ -225,7 +226,7 @@ func (d *DiskCache) LogStats() {
 		}
 	}
 
-	log.Printf("Cache Entries: %d  Expired Entries: %d", entries, expired)
+	fmt.Fprintf(w, "Cache Entries: %d  Expired Entries: %d\n", entries, expired)
 }
 
 func NewDiskCache(rootDir string, clearCache bool) *DiskCache {
