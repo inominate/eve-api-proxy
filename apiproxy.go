@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/inominate/eve-api-proxy/apicache"
 	"io"
 	"io/ioutil"
 	"log"
@@ -10,7 +9,11 @@ import (
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/inominate/eve-api-proxy/apicache"
 )
+
+import _ "net/http/pprof"
 
 var debugLog *log.Logger
 var debug bool
@@ -20,6 +23,11 @@ var dc *DiskCache
 func main() {
 	var err error
 	log.SetFlags(0)
+
+	// oh god debugging remove this
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	conf, err = loadConfig("apiproxy.xml")
 
