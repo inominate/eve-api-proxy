@@ -141,7 +141,7 @@ func PrintWorkerStats(w io.Writer) {
 	active, loaded := GetWorkerStats()
 	fmt.Fprintf(w, "%d workers idle, %d workers active.\n", loaded-active, active)
 
-	for i := int32(0); i < atomic.LoadInt32(&workerCount); i++ {
+	for i := int32(1); i <= atomic.LoadInt32(&workerCount); i++ {
 		count := atomic.LoadInt32(&workCount[i])
 		fmt.Fprintf(w, "   %d: %d\n", i, count)
 	}
