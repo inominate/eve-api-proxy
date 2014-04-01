@@ -129,6 +129,12 @@ func apiKeyInfoHandler(url string, params map[string]string) *apicache.Response 
 	return resp
 }
 
+/*
+Note that this is a best-attempt number only, actual error count can go
+significantly higher as massed concurrent requests run. This isn't to prevent
+errors being sent to the API so much as to prevent things from getting out of
+control in response to a pathlogical request.
+*/
 const maxIDErrors = 16
 
 // Bug Correcting Handler for endpoints using comma separated ID lists which
@@ -204,11 +210,20 @@ type errCount struct {
 }
 
 func (e *errCount) Get() int {
-	return e.count
+	e.Lock()
+	defer e.Unlock()
+
+	count := e.count
+	return count
 }
+
 func (e *errCount) Add() int {
+	e.Lock()
+	defer e.Unlock()
+
 	e.count++
-	return e.count
+	count := e.count
+	return count
 }
 
 func findValidIDs(url string, params map[string]string, ids []string, errCount *errCount) ([]string, error) {
@@ -219,6 +234,10 @@ func findValidIDs(url string, params map[string]string, ids []string, errCount *
 		} else {
 			return nil, err
 		}
+	}
+
+	if count := errCount.Get(); count >= maxIDErrors {
+		return nil, fmt.Errorf("failed to get ids, hit %d errors limit", count)
 	}
 
 	var leftIDs, rightIDs []string
@@ -261,9 +280,6 @@ func findValidIDs(url string, params map[string]string, ids []string, errCount *
 }
 
 func isValidIDList(url string, params map[string]string, ids []string, errCount *errCount) (bool, error) {
-	errCount.Lock()
-	defer errCount.Unlock()
-
 	if count := errCount.Get(); count >= maxIDErrors {
 		return false, fmt.Errorf("failed to get ids, hit %d errors limit", count)
 	}

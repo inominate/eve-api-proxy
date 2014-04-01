@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/inominate/errthrot"
 	"github.com/inominate/eve-api-proxy/apicache"
 )
 
@@ -17,6 +18,11 @@ var debugLog *log.Logger
 var debug bool
 
 var dc *DiskCache
+
+// Setting for throttling errors. Max errors per Period.
+// Longer periods is less likely to be interrupted by bursty errors.
+// Shorter periods will limit maximum delays.
+var errThrot *errthrot.ErrThrot
 
 func main() {
 	var err error
@@ -64,6 +70,8 @@ func main() {
 	apicache.GetDefaultClient().Retries = conf.Retries
 	apicache.GetDefaultClient().SetTimeout(time.Duration(conf.APITimeout) * time.Second)
 	//////////////////////////////////////
+
+	errThrot = errthrot.NewErrThrot(conf.MaxErrors, time.Duration(conf.ErrorPeriod)*time.Second)
 
 	startWorkers()
 
@@ -113,6 +121,7 @@ func setupLogging() {
 
 	debugLog = log.New(debugfp, "DEBUG ", logflag)
 	apicache.DebugLog = debugLog
+	errthrot.DebugLog = debugLog
 
 	log.SetFlags(logflag)
 	debugLog.SetFlags(logflag)

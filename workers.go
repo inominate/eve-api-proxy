@@ -100,11 +100,27 @@ func worker(reqChan chan apiReq, workerID int) {
 	for req := range reqChan {
 		atomic.AddInt32(&activeWorkerCount, 1)
 
-		resp, err := req.apiReq.Do()
-		req.apiResp = resp
-		req.err = err
-		req.worker = workerID
+		err := errThrot.Start(60 * time.Second)
+		if err != nil {
+			req.apiResp = &apicache.Response{
+				Data:     apicache.SynthesizeAPIError(500, "APIProxy Error: Proxy timeout due to error throttling.", 5*time.Minute),
+				Expires:  time.Now().Add(5 * time.Minute),
+				Error:    apicache.APIError{500, "APIProxy Error: Proxy timeout due to error throttling."},
+				HTTPCode: 504,
+			}
+			req.err = err
+		} else {
+			resp, err := req.apiReq.Do()
+			req.apiResp = resp
+			req.err = err
+			if resp.Error.ErrorCode == 0 {
+				errThrot.Finish(nil)
+			} else {
+				errThrot.Finish(resp.Error)
+			}
+		}
 
+		req.worker = workerID
 		req.respChan <- req
 		atomic.AddInt32(&workCount[workerID], 1)
 		atomic.AddInt32(&activeWorkerCount, -1)

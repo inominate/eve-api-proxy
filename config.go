@@ -10,17 +10,24 @@ import (
 )
 
 type configFile struct {
-	Listen               string
-	Threads              int
-	Workers              int
-	Retries              int
-	APITimeout           int
-	CacheDir             string
-	FastStart            bool
+	Listen string
+
+	Threads int
+	Workers int
+
+	Retries     int
+	APITimeout  int
+	ErrorPeriod int
+	MaxErrors   int
+
+	CacheDir  string
+	FastStart bool
+
 	Secret               string `xml:",omitempty"`
 	ProxyAddr            string `xml:",omitempty"`
 	RealRemoteAddrHeader string `xml:",omitempty"`
-	Logging              logConfig
+
+	Logging logConfig
 }
 
 type logConfig struct {
@@ -42,12 +49,17 @@ func genSecret() string {
 }
 
 var defaultConfig = configFile{
-	Listen:     "127.0.0.1:3748",
-	Threads:    0,
-	Workers:    10,
+	Listen:  "127.0.0.1:3748",
+	Threads: 0,
+	Workers: 10,
+
+	ErrorPeriod: 60,
+	MaxErrors:   20,
+
 	Retries:    3,
 	APITimeout: 60,
-	CacheDir:   "cache/",
+
+	CacheDir: "cache/",
 	Logging: logConfig{
 		CensorLog: true,
 	},
