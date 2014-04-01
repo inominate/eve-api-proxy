@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/inominate/errthrot"
 	"github.com/inominate/eve-api-proxy/apicache"
+	"github.com/inominate/eve-api-proxy/errthrot"
 )
 
 var debugLog *log.Logger
@@ -121,7 +121,7 @@ func setupLogging() {
 
 	debugLog = log.New(debugfp, "DEBUG ", logflag)
 	apicache.DebugLog = debugLog
-	errthrot.DebugLog = debugLog
+	//errthrot.DebugLog = debugLog
 
 	log.SetFlags(logflag)
 	debugLog.SetFlags(logflag)
