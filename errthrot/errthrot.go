@@ -111,8 +111,26 @@ func NewErrThrot(maxErrors int, period time.Duration) *ErrThrot {
 }
 
 var ErrTimeout = errors.New("timeout waiting for clearance to continue")
+var ErrAlreadyClosed = errors.New("already closed")
 
-func (e *ErrThrot) Start(timeout time.Duration) error {
+func (e *ErrThrot) Start(timeout time.Duration) (retErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			e, ok := r.(error)
+			if !ok || e == nil {
+				panic(r)
+			}
+
+			if e.Error() == "runtime error: send on closed channel" {
+				DebugLog.Printf("Already closed: %s", e)
+				retErr = ErrAlreadyClosed
+			} else {
+				DebugLog.Printf("Other Error: %s", e)
+				retErr = e
+			}
+		}
+	}()
+
 	var timeoutChan <-chan time.Time
 	if timeout != 0 {
 		timeoutChan = time.After(timeout)
@@ -127,11 +145,28 @@ func (e *ErrThrot) Start(timeout time.Duration) error {
 	}
 }
 
-func (e *ErrThrot) Finish(err error) {
-	e.finish <- err
-}
+func (e *ErrThrot) Finish(err error) (retErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			e, ok := r.(error)
+			if !ok || e == nil {
+				panic(r)
+			}
 
-var ErrAlreadyClosed = errors.New("already closed")
+			if e.Error() == "runtime error: send on closed channel" {
+				DebugLog.Printf("Already closed: %s", e)
+				retErr = ErrAlreadyClosed
+			} else {
+				DebugLog.Printf("Other Error: %s", e)
+				retErr = e
+			}
+		}
+	}()
+
+	e.finish <- err
+
+	return nil
+}
 
 func (e *ErrThrot) Close() (retErr error) {
 	defer func() {

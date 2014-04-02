@@ -169,7 +169,31 @@ func Test_Close(t *testing.T) {
 		t.Errorf("error closing et: %s", err)
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	go func() {
+		err := et.Start(0)
+		if err != ErrAlreadyClosed {
+			t.Errorf("start gave unknown error: %s", err)
+		}
+		successChan <- true
+	}()
+	select {
+	case <-successChan:
+	case <-time.After(100 * time.Millisecond):
+		t.Errorf("start failed to detect closed channel, timed out")
+	}
+
+	go func() {
+		err := et.Finish(nil)
+		if err != ErrAlreadyClosed {
+			t.Errorf("finish gave unknown error: %s", err)
+		}
+		successChan <- true
+	}()
+	select {
+	case <-successChan:
+	case <-time.After(100 * time.Millisecond):
+		t.Errorf("finish failed to detect closed channel, timed out")
+	}
 }
 
 /*
