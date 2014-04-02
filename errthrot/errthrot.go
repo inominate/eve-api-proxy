@@ -59,8 +59,6 @@ func (e *ErrThrot) run() {
 	for {
 		select {
 		case err := <-e.finish:
-			DebugLog.Printf("PreEnd:	O: %d	E: %d	T: %d", outstanding, count, outstanding+count)
-
 			if err == nil {
 				DebugLog.Printf("Item finished with no error.")
 			} else {
@@ -81,12 +79,12 @@ func (e *ErrThrot) run() {
 				DebugLog.Printf("Error limit clear, continuing")
 				startChan = e.start
 			}
-			DebugLog.Printf("PostEnd:	O: %d	E: %d	T: %d", outstanding, count, outstanding+count)
 
 		case <-startChan:
-			DebugLog.Printf("PreStart:	O: %d	E: %d	T: %d", outstanding, count, outstanding+count)
+			count = e.countErrors()
+
 			outstanding++
-			DebugLog.Printf("New Item Starting: %d.", outstanding)
+			DebugLog.Printf("New Item Starting, %d outstanding.", outstanding)
 			if outstanding+count == e.maxErrors {
 				DebugLog.Printf("New requests could break error limit, slowing down.")
 				// Stop listening for start requests causing new ones to block until
@@ -95,10 +93,9 @@ func (e *ErrThrot) run() {
 			} else if outstanding+count > e.maxErrors {
 				log.Printf("New requests have broken error limit, this shouldn't happen. %d+%d (%d) > %d", outstanding, count, outstanding+count, e.maxErrors)
 			}
-			DebugLog.Printf("PostStart:	O: %d	E: %d	T: %d", outstanding, count, outstanding+count)
 
 		case respChan := <-e.close:
-			DebugLog.Printf("Starting worker shutdown")
+			DebugLog.Printf("Beginning worker cleanup.")
 
 			close(e.close)
 			close(e.start)
@@ -111,8 +108,18 @@ func (e *ErrThrot) run() {
 
 			respChan <- err
 
-			DebugLog.Printf("Worker cleanup complete")
+			DebugLog.Printf("Worker cleanup complete, shutting down.")
 			return
+
+		case <-e.expireErrors:
+			count = e.countErrors()
+			DebugLog.Printf("expired errors, have %d errors.", count)
+
+			if outstanding+count < e.maxErrors {
+				DebugLog.Printf("Error limit clear, continuing")
+				startChan = e.start
+			}
+
 		}
 	}
 }
@@ -120,8 +127,10 @@ func (e *ErrThrot) run() {
 func NewErrThrot(maxErrors int, period time.Duration) *ErrThrot {
 	var e ErrThrot
 	e.start = make(chan bool)
-	e.finish = make(chan error, maxErrors*5)
+	e.finish = make(chan error, maxErrors*2)
 	e.close = make(chan chan error)
+
+	e.errors = make(map[time.Time]struct{}, maxErrors)
 
 	e.maxErrors = maxErrors
 	e.period = period
@@ -141,10 +150,8 @@ func (e *ErrThrot) Start(timeout time.Duration) (retErr error) {
 			}
 
 			if e.Error() == "runtime error: send on closed channel" {
-				DebugLog.Printf("Already closed: %s", e)
 				retErr = ErrAlreadyClosed
 			} else {
-				DebugLog.Printf("Other Error: %s", e)
 				retErr = e
 			}
 		}
