@@ -21,6 +21,13 @@ isn't hardened against malicious requests.
 the proxy will correct for them. Workarounds for other issues can be added
 fairly easily.
 
+* Locations.xml.aspx will fail completely when given a list of item ids and one
+or more are invalid. This can occur due to the cache lag in other endpoints 
+still showing nonexistent items. The proxy can correct for this faster than
+trying each id independently. Because of the large number of errors this can
+potential generate, it will fail if it generates more than 16 errors and must
+be manually enabled by adding fix=1 to the query string.
+
 * If for some reason the API throws a temp ban, the proxy will refuse to
 continue servicing requests until the ban expires.
 
@@ -68,6 +75,12 @@ code 504, to indicate an inability to connect to the API.
 In the form of ip:port, or :port to listen on all interfaces.  Currently only
 supports a single bind point.  Default is localhost:3748.
 
+##### `Threads`
+Sets the number of operating system threads to run simultaneously. This is an
+internal Go setting and unrelated to the number of simultaneous workers. A
+setting of 0 will use one thread per available logical CPU. This should
+virtually never be anything other than 0 or 1.  Default is 0.
+
 ##### `Workers`
 Number of workers to run processing requests, each worker tries to maintain its
 own semi-permanent connection to the API. Default is 10.
@@ -81,6 +94,21 @@ The maximum length of time in seconds that any single request to the API should
 take. Default is 60 seconds and should probably be increased in the case of
 slow connections pulling large blocks of XML.
 
+##### `ErrorPeriod`
+The length of time to consider API errors in the count. Higher numbers allow
+bursty errors to run without interruption but can cause timeouts when the limit
+is reached.  Lower numbers may cause throttling sooner but can allow for 
+results to be returned before timeouts.
+
+If a request is held up for more than 60 seconds, the proxy will return a CCP
+style API Error 500.
+
+Default is 60 seconds.
+
+##### `MaxErrors`
+The maximum number of errors that can occur over any given ErrorPeriod. Default
+is 20.
+
 ##### `CacheDir`
 The directory in which cached API data will be stored.  Default is ./cache/
 
@@ -88,12 +116,6 @@ The directory in which cached API data will be stored.  Default is ./cache/
 Fast start mode will clear the cache on startup instead of reloading it.
 Should only be used for debugging when the proxy needs to be restarted with a
 very large cache.
-
-##### `Threads`
-Sets the number of operating system threads to run simultaneously. This is an
-internal Go setting and unrelated to the number of simultaneous workers. A
-setting of 0 will use one thread per available logical CPU. This should
-virtually never be anything other than 0 or 1.  Default is 0.
 
 ##### `LogFile`
 File to use for general logging. Default is blank and will use stdout.
