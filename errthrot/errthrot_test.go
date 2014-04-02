@@ -71,12 +71,12 @@ func Test_Clean(t *testing.T) {
 
 func Test_Error(t *testing.T) {
 	et := NewErrThrot(4, 100*time.Millisecond)
-	taskLength := 10 * time.Millisecond
+	taskLength := 5 * time.Millisecond
 	begin := time.Now()
 	minDuration := 200 * time.Millisecond
 
 	successChan := make(chan bool)
-	timeout := time.After(time.Second)
+	timeout := time.After(2 * time.Second)
 	go func() {
 		for i := 1; i <= 20; i++ {
 			if i%2 == 0 {
@@ -136,7 +136,7 @@ func Test_Close(t *testing.T) {
 	taskLength := 1 * time.Millisecond
 
 	successChan := make(chan bool)
-	timeout := time.After(time.Second)
+	timeout := time.After(2 * time.Second)
 	go func() {
 		for i := 1; i <= 10; i++ {
 			if i%2 == 0 {
@@ -240,5 +240,5 @@ func Test_Speculate(t *testing.T) {
 }
 
 func init() {
-	//	DebugLog = log.New(os.Stdout, "errthrot", log.LstdFlags|log.Lshortfile)
+	//DebugLog = log.New(os.Stdout, "errthrot	", log.LstdFlags|log.Lshortfile)
 }
