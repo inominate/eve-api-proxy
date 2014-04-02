@@ -47,7 +47,7 @@ func (e *ErrThrot) countErrors() (errorCount int) {
 	return
 }
 
-/* addError() should only ever called by run, dangerous if used elsewhere. */
+/* addError should only ever called by run, dangerous if used elsewhere. */
 func (e *ErrThrot) addError() {
 	e.errors[time.Now().Add(e.period)] = struct{}{}
 }
