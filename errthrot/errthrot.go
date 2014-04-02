@@ -15,42 +15,61 @@ type ErrThrot struct {
 	maxErrors int
 	period    time.Duration
 
+	expireErrors <-chan time.Time
+	errors       map[time.Time]struct{}
+
 	start  chan bool
 	finish chan error
 	close  chan chan error
 }
 
-func (e *ErrThrot) run() {
-	var periodEnd <-chan time.Time
-	var count, outstanding int
+/* countErrors should only ever called by run, dangerous if used elsewhere. */
+func (e *ErrThrot) countErrors() (errorCount int) {
+	var nextExpire time.Time
+	now := time.Now()
 
+	for t := range e.errors {
+		if t.Before(now) {
+			delete(e.errors, t)
+		} else {
+			errorCount++
+		}
+		if nextExpire.IsZero() || t.Before(nextExpire) {
+			nextExpire = t
+		}
+	}
+
+	if nextExpire.IsZero() {
+		e.expireErrors = nil
+	} else {
+		e.expireErrors = time.After(nextExpire.Sub(now))
+	}
+	return
+}
+
+/* addError() should only ever called by run, dangerous if used elsewhere. */
+func (e *ErrThrot) addError() {
+	e.errors[time.Now().Add(e.period)] = struct{}{}
+}
+
+func (e *ErrThrot) run() {
+	var count, outstanding int
 	var startChan = e.start
 
 	for {
 		select {
-		case <-periodEnd:
-			DebugLog.Printf("Period completed. %d errors in %.1f seconds.", count, e.period.Seconds())
-			periodEnd = nil
-			count = 0
-			startChan = e.start
-
 		case err := <-e.finish:
 			DebugLog.Printf("PreEnd:	O: %d	E: %d	T: %d", outstanding, count, outstanding+count)
 
 			if err == nil {
 				DebugLog.Printf("Item finished with no error.")
 			} else {
-				if periodEnd == nil {
-					DebugLog.Printf("Beginning new error period of %.1f seconds.", e.period.Seconds())
-
-					periodEnd = time.After(e.period)
-				}
-				count++
+				e.addError()
+				count = e.countErrors()
 
 				DebugLog.Printf("Item finished with error. Current error count is %d.", count)
-
 				if count >= e.maxErrors {
-					DebugLog.Printf("Error limit reached, waiting for end of period.")
+					DebugLog.Printf("Error limit reached, blocking start requests.")
 
 					// Stop listening for new start requests.
 					startChan = nil

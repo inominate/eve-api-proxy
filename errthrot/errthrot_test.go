@@ -206,12 +206,13 @@ func Test_Speculate(t *testing.T) {
 	successChan := make(chan bool)
 	timeout := time.After(120 * time.Millisecond)
 
+	begin := time.Now()
 	// trigger two quick errors followed by a long, non-error task
 	go func() {
 		TaskError(t, et, 1, 0, 0)
 		TaskError(t, et, 2, 0, 0)
 		successChan <- true
-		TaskClean(t, et, 3, 0, 110*time.Millisecond)
+		TaskClean(t, et, 3, 0, 200*time.Millisecond)
 	}()
 
 	select {
@@ -221,7 +222,6 @@ func Test_Speculate(t *testing.T) {
 		return
 	}
 
-	begin := time.Now()
 	TaskClean(t, et, -1, 0, 0)
 	if time.Since(begin) < 100*time.Millisecond {
 		t.Errorf("speculate not holding up tasks")
