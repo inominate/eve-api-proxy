@@ -1,3 +1,5 @@
 apiproxy.xml
 *.swp
 cache
+eve-api-proxy
+push.sh
