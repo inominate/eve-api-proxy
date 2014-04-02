@@ -106,8 +106,9 @@ style API Error 500.
 Default is 60 seconds.
 
 ##### `MaxErrors`
-The maximum number of errors that can occur over any given ErrorPeriod. Default
-is 20.
+The maximum number of errors that can occur over any given ErrorPeriod. This
+number should always be greater than the number of workers or else workers will
+be held up in order go guarantee the limit is not broken. Default is 20.
 
 ##### `CacheDir`
 The directory in which cached API data will be stored.  Default is ./cache/
