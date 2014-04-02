@@ -135,6 +135,7 @@ func NewErrThrot(maxErrors int, period time.Duration) *ErrThrot {
 	e.maxErrors = maxErrors
 	e.period = period
 	go e.run()
+
 	return &e
 }
 
