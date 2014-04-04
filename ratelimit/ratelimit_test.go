@@ -1,12 +1,13 @@
-package errthrot
+package ratelimit
 
 import (
-	"errors"
+	"log"
+	"os"
 	"testing"
 	"time"
 )
 
-func TaskClean(t *testing.T, e *ErrThrot, id int, timeout time.Duration, taskLength time.Duration) bool {
+func TaskClean(t *testing.T, e *RateLimit, id int, timeout time.Duration, taskLength time.Duration) bool {
 	t.Logf("Clean task %d starting.", id)
 
 	err := e.Start(timeout)
@@ -19,13 +20,13 @@ func TaskClean(t *testing.T, e *ErrThrot, id int, timeout time.Duration, taskLen
 	time.Sleep(taskLength)
 
 	t.Logf("Clean task %d finishing.", id)
-	e.Finish(nil)
+	e.Finish(true)
 	t.Logf("Clean task %d finished.", id)
 
 	return false
 }
 
-func TaskError(t *testing.T, e *ErrThrot, id int, timeout time.Duration, taskLength time.Duration) bool {
+func TaskError(t *testing.T, e *RateLimit, id int, timeout time.Duration, taskLength time.Duration) bool {
 	t.Logf("Error task %d starting.", id)
 
 	err := e.Start(timeout)
@@ -38,14 +39,14 @@ func TaskError(t *testing.T, e *ErrThrot, id int, timeout time.Duration, taskLen
 	time.Sleep(taskLength)
 
 	t.Logf("Error task %d finishing.", id)
-	e.Finish(errors.New("testerror"))
+	e.Finish(false)
 	t.Logf("Error task %d finished.", id)
 
 	return false
 }
 
 func Test_Clean(t *testing.T) {
-	et := NewErrThrot(5, 1*time.Second)
+	et := NewRateLimit(5, 1*time.Second)
 	taskLength := 1 * time.Millisecond
 
 	successChan := make(chan bool)
@@ -70,7 +71,7 @@ func Test_Clean(t *testing.T) {
 }
 
 func Test_Error(t *testing.T) {
-	et := NewErrThrot(4, 100*time.Millisecond)
+	et := NewRateLimit(4, 100*time.Millisecond)
 	taskLength := 5 * time.Millisecond
 	begin := time.Now()
 	minDuration := 200 * time.Millisecond
@@ -103,7 +104,7 @@ func Test_Error(t *testing.T) {
 }
 
 func Test_Timeout(t *testing.T) {
-	et := NewErrThrot(5, 10*time.Second)
+	et := NewRateLimit(5, 10*time.Second)
 	taskLength := 10 * time.Millisecond
 
 	successChan := make(chan bool)
@@ -132,7 +133,7 @@ func Test_Timeout(t *testing.T) {
 
 func Test_Close(t *testing.T) {
 	t.Logf("Close test")
-	et := NewErrThrot(4, 10*time.Millisecond)
+	et := NewRateLimit(4, 10*time.Millisecond)
 	taskLength := 1 * time.Millisecond
 
 	successChan := make(chan bool)
@@ -183,7 +184,7 @@ func Test_Close(t *testing.T) {
 	}
 
 	go func() {
-		err := et.Finish(nil)
+		err := et.Finish(true)
 		if err != ErrAlreadyClosed {
 			t.Errorf("finish gave unknown error: %s", err)
 		}
@@ -201,7 +202,7 @@ Test speculative error checking, if we're near the error limit don't allow
 concurrent requests to pile up.
 */
 func Test_Speculate(t *testing.T) {
-	et := NewErrThrot(3, 100*time.Millisecond)
+	et := NewRateLimit(3, 100*time.Millisecond)
 
 	successChan := make(chan bool)
 	timeout := time.After(120 * time.Millisecond)
@@ -240,5 +241,5 @@ func Test_Speculate(t *testing.T) {
 }
 
 func init() {
-	//DebugLog = log.New(os.Stdout, "errthrot	", log.LstdFlags|log.Lshortfile)
+	DebugLog = log.New(os.Stdout, "ratelimit	", log.LstdFlags|log.Lshortfile)
 }

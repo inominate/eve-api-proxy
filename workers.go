@@ -100,7 +100,7 @@ func worker(reqChan chan apiReq, workerID int) {
 	for req := range reqChan {
 		atomic.AddInt32(&activeWorkerCount, 1)
 
-		err := errThrot.Start(60 * time.Second)
+		err := rateLimiter.Start(60 * time.Second)
 		if err != nil {
 			req.apiResp = &apicache.Response{
 				Data:     apicache.SynthesizeAPIError(500, "APIProxy Error: Proxy timeout due to error throttling.", 5*time.Minute),
@@ -114,9 +114,11 @@ func worker(reqChan chan apiReq, workerID int) {
 			req.apiResp = resp
 			req.err = err
 			if resp.Error.ErrorCode == 0 {
-				errThrot.Finish(nil)
+				// Finish, but skip recording the event in the rate limiter
+				// when there is no error.
+				rateLimiter.Finish(true)
 			} else {
-				errThrot.Finish(resp.Error)
+				rateLimiter.Finish(false)
 			}
 		}
 
