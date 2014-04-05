@@ -25,7 +25,7 @@ fairly easily.
 or more are invalid. This can occur due to the cache lag in other endpoints 
 still showing nonexistent items. The proxy can correct for this faster than
 trying each id independently. Because of the large number of errors this can
-potential generate, it will fail if it generates more than 16 errors and must
+potentialy generate, it will fail if it generates more than 16 errors and must
 be manually enabled by adding fix=1 to the query string.
 
 * If for some reason the API throws a temp ban, the proxy will refuse to
