@@ -33,6 +33,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 )
@@ -60,6 +61,9 @@ type Client struct {
 	// Base URL, defaults to CCPs api but can be changed to a proxy
 	BaseURL string
 
+	//Alternate user agent to use.
+	UserAgent string
+
 	// Default three retries, can be changed at will.
 	Retries int
 
@@ -82,6 +86,7 @@ var client *Client
 // Default BaseURL for new clients, change as necessary.  Must contain
 // trailing slash or bad things happen.
 var DefaultBaseURL = "https://api.eveonline.com/"
+var DefaultUserAgent = "go apicache by Innominate(github.com/inominate/apicache)"
 
 // Return the default client for
 func GetDefaultClient() *Client {
@@ -255,6 +260,23 @@ func MakeID() string {
 	return fmt.Sprintf("%x", buf)
 }
 
+func (c *Client) postForm(url string, values url.Values) (*http.Response, error) {
+	// httpResp, err = c.httpClient.PostForm(c.BaseURL+r.url, formValues)
+	req, err := http.NewRequest("POST", url, strings.NewReader(values.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	var ua string = DefaultUserAgent
+	if c.UserAgent != "" {
+		ua = c.UserAgent
+	}
+	req.Header.Set("User-Agent", ua)
+
+	return c.httpClient.Do(req)
+}
+
 // Perform a request, usually called by the request itself.
 // User friendly error is enclosed in the response, returned error should be
 // for internal use only.
@@ -317,7 +339,7 @@ func (c *Client) Do(r *Request) (retresp *Response, reterr error) {
 	for tries < c.Retries {
 		tries++
 
-		httpResp, err = c.httpClient.PostForm(c.BaseURL+r.url, formValues)
+		httpResp, err = c.postForm(c.BaseURL+r.url, formValues)
 		if err != nil {
 			DebugLog.Printf("Error Connecting to API, retrying: %s", err)
 			time.Sleep(3 * time.Second)

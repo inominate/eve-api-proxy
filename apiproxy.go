@@ -65,6 +65,7 @@ func main() {
 	apicache.NewClient(dc)
 	apicache.SetMaxIdleConns(conf.Workers)
 	apicache.GetDefaultClient().Retries = conf.Retries
+	apicache.GetDefaultClient().UserAgent = "eve-api-proxy by Innominate - http://github.com/inominate/eve-api-proxy"
 	apicache.GetDefaultClient().SetTimeout(time.Duration(conf.APITimeout) * time.Second)
 	//////////////////////////////////////
 
