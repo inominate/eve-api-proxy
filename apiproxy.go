@@ -65,8 +65,13 @@ func main() {
 	apicache.NewClient(dc)
 	apicache.SetMaxIdleConns(conf.Workers)
 	apicache.GetDefaultClient().Retries = conf.Retries
-	apicache.GetDefaultClient().UserAgent = "eve-api-proxy by Innominate - http://github.com/inominate/eve-api-proxy"
 	apicache.GetDefaultClient().SetTimeout(time.Duration(conf.APITimeout) * time.Second)
+
+	ua := "eve-api-proxy by Innominate - http://github.com/inominate/eve-api-proxy"
+	if conf.UserAgent != "" {
+		ua = conf.UserAgent
+	}
+	apicache.GetDefaultClient().UserAgent = ua
 	//////////////////////////////////////
 
 	rateLimiter = ratelimit.NewRateLimit(conf.MaxErrors, time.Duration(conf.ErrorPeriod)*time.Second)

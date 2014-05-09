@@ -26,6 +26,7 @@ type configFile struct {
 	Secret               string `xml:",omitempty"`
 	ProxyAddr            string `xml:",omitempty"`
 	RealRemoteAddrHeader string `xml:",omitempty"`
+	UserAgent            string `xml:",omitempty"`
 
 	Logging logConfig
 }
