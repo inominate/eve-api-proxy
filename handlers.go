@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/inominate/eve-api-proxy/apicache"
 )
@@ -27,9 +29,9 @@ func defaultHandler(url string, params map[string]string) *apicache.Response {
 // passthrough.
 var validPages = map[string]APIHandler{
 	//	"/control/":                             controlHandler,
-	"/account/accountstatus.xml.aspx":       nil,
-	"/account/apikeyinfo.xml.aspx":          apiKeyInfoHandler,
-	"/account/characters.xml.aspx":          nil,
+	"/account/accountstatus.xml.aspx":       accountAPIHandler,
+	"/account/apikeyinfo.xml.aspx":          accountAPIHandler,
+	"/account/characters.xml.aspx":          accountAPIHandler,
 	"/char/accountbalance.xml.aspx":         nil,
 	"/char/assetlist.xml.aspx":              nil,
 	"/char/calendareventattendees.xml.aspx": nil,
@@ -108,7 +110,7 @@ var validPages = map[string]APIHandler{
 // Bug Correcting Handler for APIKeyInfo.xml.aspx
 // API occasionally returns 221s for no reason, retry automatically when we
 // run into one of them.
-func apiKeyInfoHandler(url string, params map[string]string) *apicache.Response {
+func accountAPIHandler(url string, params map[string]string) *apicache.Response {
 	resp, err := APIReq(url, params)
 
 	// :ccp: 221's come up for no reason and need to be ignored
@@ -120,9 +122,20 @@ func apiKeyInfoHandler(url string, params map[string]string) *apicache.Response 
 			if resp.Error.ErrorCode != 221 || err != nil {
 				break
 			}
+			time.Sleep(2 * time.Second)
+		}
+		if resp.Error.ErrorCode == 221 {
+			keyid, _ := params["keyid"]
+			log.Printf("Failed to recover from 221 at %s for keyid %s: %s", url, keyid, resp.Error)
+
+			return &apicache.Response{
+				Data:     apicache.SynthesizeAPIError(500, "APIProxy Error: Failed to recover from bogus 221.", 5*time.Minute),
+				Expires:  time.Now().Add(5 * time.Minute),
+				Error:    apicache.APIError{500, "APIProxy Error: Failed to recover from bogus 221."},
+				HTTPCode: 504,
+			}
 		}
 	}
-
 	if err != nil {
 		debugLog.Printf("API Error %s: %s - %+v", err, url, params)
 	}
