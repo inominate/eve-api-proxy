@@ -130,7 +130,7 @@ func accountAPIHandler(url string, params map[string]string) *apicache.Response 
 
 			return &apicache.Response{
 				Data:     apicache.SynthesizeAPIError(500, "APIProxy Error: Failed to recover from bogus 221.", 5*time.Minute),
-				Expires:  time.Now().Add(5 * time.Minute),
+				Expires:  time.Now().Add(4 * time.Hour),
 				Error:    apicache.APIError{500, "APIProxy Error: Failed to recover from bogus 221."},
 				HTTPCode: 504,
 			}
