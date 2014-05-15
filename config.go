@@ -55,7 +55,7 @@ var defaultConfig = configFile{
 	Workers: 10,
 
 	ErrorPeriod: 30,
-	MaxErrors:   60,
+	MaxErrors:   30,
 
 	Retries:    3,
 	APITimeout: 60,
