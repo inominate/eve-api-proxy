@@ -205,6 +205,11 @@ func PrintWorkerStats(w io.Writer) {
 	active, loaded := GetWorkerStats()
 	fmt.Fprintf(w, "%d workers idle, %d workers active.\n", loaded-active, active)
 
+	rateCount := rateLimiter.Count()
+	errorCount := errorRateLimiter.Count()
+	fmt.Fprintf(w, "%d requests in the last second.\n", rateCount)
+	fmt.Fprintf(w, "%d errors over last %d seconds.\n", errorCount, conf.ErrorPeriod)
+
 	for i := int32(1); i <= atomic.LoadInt32(&workerCount); i++ {
 		count := atomic.LoadInt32(&workCount[i])
 		fmt.Fprintf(w, "   %d: %d\n", i, count)
