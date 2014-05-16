@@ -45,6 +45,7 @@ func NewRateLimit(maxEvents int, period time.Duration) *RateLimit {
 	rl.start = make(chan struct{})
 	rl.finish = make(chan bool, maxEvents*2)
 	rl.close = make(chan chan error)
+	rl.count = make(chan chan int)
 
 	rl.events = make(map[time.Time]struct{}, maxEvents)
 
@@ -157,4 +158,29 @@ func (rl *RateLimit) Close() (retErr error) {
 	err := <-respChan
 
 	return err
+}
+
+/*
+Count returns the current event count over period currently being tracked.
+Returns a zero if the rate limiter has been closed.
+*/
+func (rl *RateLimit) Count() int {
+	// Use recover to avoid panicing the entire program should start be called
+	// on a closed RateLimit. We're just ending up returning 0.
+	/*
+		defer func() {
+			if r := recover(); r != nil {
+				e, ok := r.(error)
+				if !ok || e == nil {
+					panic(r)
+				}
+			}
+		}()
+	*/
+	respChan := make(chan int)
+
+	rl.count <- respChan
+	count := <-respChan
+
+	return count
 }

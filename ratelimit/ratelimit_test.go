@@ -90,15 +90,18 @@ func Test_Error(t *testing.T) {
 	select {
 	case <-successChan:
 		if time.Since(begin) < minDuration {
-			t.Errorf("tasks completed but error throttling not functional")
-		} else {
-			t.Logf("Error test succeeded.")
+			t.Fatalf("tasks completed but error throttling not functional")
 		}
-		return
 	case <-timeout:
-		t.Errorf("Error tasks failed to complete.")
-		return
+		t.Fatalf("Error tasks failed to complete.")
 	}
+
+	count := et.Count()
+	if count != 3 {
+		t.Fatalf("unexpected task period count: %d", count)
+	}
+
+	t.Logf("Error test succeeded.")
 }
 
 func Test_Timeout(t *testing.T) {

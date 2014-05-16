@@ -29,6 +29,7 @@ type RateLimit struct {
 	start  chan struct{}
 	finish chan bool
 	close  chan chan error
+	count  chan chan int
 }
 
 /* countEvents should only ever called by run, dangerous if used elsewhere. */
@@ -80,10 +81,12 @@ runLoop:
 		case <-rl.activeStart:
 			rl.runStart()
 
+		case respChan := <-rl.count:
+			respChan <- rl.countEvents()
+
 		case respChan := <-rl.close:
 			rl.runClose(respChan)
 			break runLoop
-
 		}
 	}
 
@@ -148,6 +151,7 @@ func (rl *RateLimit) runClose(respChan chan error) {
 	close(rl.close)
 	close(rl.start)
 	close(rl.finish)
+	close(rl.count)
 
 	var err error
 	if rl.outstanding > 0 {
