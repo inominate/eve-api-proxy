@@ -20,6 +20,7 @@ var debug bool
 var dc *DiskCache
 
 var rateLimiter *ratelimit.RateLimit
+var errorRateLimiter *ratelimit.RateLimit
 
 func main() {
 	var err error
@@ -74,7 +75,8 @@ func main() {
 	apicache.GetDefaultClient().UserAgent = ua
 	//////////////////////////////////////
 
-	rateLimiter = ratelimit.NewRateLimit(conf.MaxErrors, time.Duration(conf.ErrorPeriod)*time.Second)
+	errorRateLimiter = ratelimit.NewRateLimit(conf.MaxErrors, time.Duration(conf.ErrorPeriod)*time.Second)
+	rateLimiter = ratelimit.NewRateLimit(conf.RequestsPerSecond, time.Second)
 
 	startWorkers()
 

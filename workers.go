@@ -97,15 +97,60 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 
 func worker(reqChan chan apiReq, workerID int) {
 	atomic.AddInt32(&workerCount, 1)
+	var err error
+
+	var eErr error
+	var rErr error
+
+	var errStr string
 	for req := range reqChan {
 		atomic.AddInt32(&activeWorkerCount, 1)
 
-		err := rateLimiter.Start(60 * time.Second)
+		// Run both of the error limiters simultaneously rather than in
+		// sequence. Still need both before we continue.
+		errorLimiter := make(chan error)
+		rpsLimiter := make(chan error)
+		go func() {
+			err := errorRateLimiter.Start(60 * time.Second)
+			errorLimiter <- err
+		}()
+		go func() {
+			err := rateLimiter.Start(60 * time.Second)
+			rpsLimiter <- err
+		}()
+		eErr = <-errorLimiter
+		rErr = <-rpsLimiter
+
+		// Check the error limiter for timeouts
+		if eErr != nil {
+			err = eErr
+			errStr = "error throttling"
+
+			// If the rate limiter didn't timeout be sure to signal it that we
+			// didn't do anything.
+			if rErr == nil {
+				rateLimiter.Finish(true)
+			}
+		}
+		if rErr != nil {
+			err = rErr
+			errStr = "rate limiting"
+
+			// If the error limiter didn't also timeout be sure to signal it that we
+			// didn't do anything.
+			if eErr == nil {
+				errorRateLimiter.Finish(true)
+			}
+		}
+		// We're left with a single err and errStr for returning an error to the client.
 		if err != nil {
 			req.apiResp = &apicache.Response{
-				Data:     apicache.SynthesizeAPIError(500, "APIProxy Error: Proxy timeout due to error throttling.", 5*time.Minute),
-				Expires:  time.Now().Add(5 * time.Minute),
-				Error:    apicache.APIError{500, "APIProxy Error: Proxy timeout due to error throttling."},
+				Data: apicache.SynthesizeAPIError(500,
+					fmt.Sprintf("APIProxy Error: Proxy timeout due to %s.", errStr),
+					5*time.Minute),
+				Expires: time.Now().Add(5 * time.Minute),
+				Error: apicache.APIError{500,
+					fmt.Sprintf("APIProxy Error: Proxy timeout due to %s.", errStr)},
 				HTTPCode: 504,
 			}
 			req.err = err
@@ -116,10 +161,11 @@ func worker(reqChan chan apiReq, workerID int) {
 			if resp.Error.ErrorCode == 0 {
 				// Finish, but skip recording the event in the rate limiter
 				// when there is no error.
-				rateLimiter.Finish(true)
+				errorRateLimiter.Finish(true)
 			} else {
-				rateLimiter.Finish(false)
+				errorRateLimiter.Finish(false)
 			}
+			rateLimiter.Finish(false)
 		}
 
 		req.worker = workerID

@@ -15,10 +15,12 @@ type configFile struct {
 	Threads int
 	Workers int
 
-	Retries     int
-	APITimeout  int
-	ErrorPeriod int
-	MaxErrors   int
+	Retries    int
+	APITimeout int
+
+	RequestsPerSecond int
+	ErrorPeriod       int
+	MaxErrors         int
 
 	CacheDir  string
 	FastStart bool
@@ -54,8 +56,10 @@ var defaultConfig = configFile{
 	Threads: 0,
 	Workers: 10,
 
-	ErrorPeriod: 30,
-	MaxErrors:   30,
+	RequestsPerSecond: 30,
+
+	ErrorPeriod: 180,
+	MaxErrors:   270,
 
 	Retries:    3,
 	APITimeout: 60,
