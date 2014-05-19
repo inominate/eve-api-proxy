@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/inominate/apicache"
-	"github.com/inominate/eve-api-proxy/ratelimit"
+	"github.com/inominate/ratelimit"
 )
 
 var debugLog *log.Logger
