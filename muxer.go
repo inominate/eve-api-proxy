@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inominate/eve-api-proxy/apicache"
+	"github.com/inominate/apicache"
 )
 
 type APIMux struct{}

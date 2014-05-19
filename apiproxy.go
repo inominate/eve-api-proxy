@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/inominate/eve-api-proxy/apicache"
+	"github.com/inominate/apicache"
 	"github.com/inominate/eve-api-proxy/ratelimit"
 )
 

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/inominate/eve-api-proxy/apicache"
+	"github.com/inominate/apicache"
 )
 
 // Prototype for page specific handlers.

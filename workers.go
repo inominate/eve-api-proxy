@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/inominate/eve-api-proxy/apicache"
+	"github.com/inominate/apicache"
 )
 
 var apiClient apicache.Client
