@@ -14,10 +14,28 @@ import (
 // Prototype for page specific handlers.
 type APIHandler func(url string, params map[string]string) *apicache.Response
 
-// A default API handler, does a straight pull with no mangling.
+// Bug Correcting Handler
+// API occasionally returns 221s for no reason, retry automatically when we
+// run into one of them.
 func defaultHandler(url string, params map[string]string) *apicache.Response {
 	resp, err := APIReq(url, params)
 
+	// :ccp: 221's come up for no apparent reason and need to be ignored
+	if err == nil && resp.Error.ErrorCode == 221 {
+		params["force"] = "true"
+
+		for i := 0; i < conf.Retries; i++ {
+			resp, err = APIReq(url, params)
+			if resp.Error.ErrorCode != 221 || err != nil {
+				break
+			}
+			time.Sleep(2 * time.Second)
+		}
+		if resp.Error.ErrorCode == 221 {
+			keyid, _ := params["keyid"]
+			log.Printf("Failed to recover from 221 at %s for keyid %s: %s", url, keyid, resp.Error)
+		}
+	}
 	if err != nil {
 		debugLog.Printf("API Error %s: %s - %+v", err, url, params)
 	}
@@ -29,9 +47,9 @@ func defaultHandler(url string, params map[string]string) *apicache.Response {
 // passthrough.
 var validPages = map[string]APIHandler{
 	//	"/control/":                             controlHandler,
-	"/account/accountstatus.xml.aspx":       accountAPIHandler,
-	"/account/apikeyinfo.xml.aspx":          accountAPIHandler,
-	"/account/characters.xml.aspx":          accountAPIHandler,
+	"/account/accountstatus.xml.aspx":       nil,
+	"/account/apikeyinfo.xml.aspx":          nil,
+	"/account/characters.xml.aspx":          nil,
 	"/char/accountbalance.xml.aspx":         nil,
 	"/char/assetlist.xml.aspx":              nil,
 	"/char/calendareventattendees.xml.aspx": nil,
@@ -105,41 +123,6 @@ var validPages = map[string]APIHandler{
 	"/map/sovereigntystatus.xml.aspx":       nil,
 	"/server/serverstatus.xml.aspx":         nil,
 	"/api/calllist.xml.aspx":                nil,
-}
-
-// Bug Correcting Handler for APIKeyInfo.xml.aspx
-// API occasionally returns 221s for no reason, retry automatically when we
-// run into one of them.
-func accountAPIHandler(url string, params map[string]string) *apicache.Response {
-	resp, err := APIReq(url, params)
-
-	// :ccp: 221's come up for no reason and need to be ignored
-	if err == nil && resp.Error.ErrorCode == 221 {
-		params["force"] = "true"
-
-		for i := 0; i < conf.Retries; i++ {
-			resp, err = APIReq(url, params)
-			if resp.Error.ErrorCode != 221 || err != nil {
-				break
-			}
-			time.Sleep(2 * time.Second)
-		}
-		if resp.Error.ErrorCode == 221 {
-			keyid, _ := params["keyid"]
-			log.Printf("Failed to recover from 221 at %s for keyid %s: %s", url, keyid, resp.Error)
-
-			return &apicache.Response{
-				Data:     apicache.SynthesizeAPIError(500, "APIProxy Error: Failed to recover from bogus 221.", 5*time.Minute),
-				Expires:  time.Now().Add(4 * time.Hour),
-				Error:    apicache.APIError{500, "APIProxy Error: Failed to recover from bogus 221."},
-				HTTPCode: 504,
-			}
-		}
-	}
-	if err != nil {
-		debugLog.Printf("API Error %s: %s - %+v", err, url, params)
-	}
-	return resp
 }
 
 /*
