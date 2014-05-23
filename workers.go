@@ -58,7 +58,8 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 	workerID := "C"
 	// Don't send it to a worker if we can just yank it fromm the cache
 	apiResp, err := apireq.GetCached()
-	if err != nil || apireq.Force {
+	// 221's are the bane of my existence.
+	if err != nil || apireq.Force || apiResp.Error.ErrorCode == 221 {
 		for i := 0; i <= conf.Retries; i++ {
 			respChan := make(chan apiReq)
 			req := apiReq{apiReq: apireq, respChan: respChan}
@@ -76,16 +77,17 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 				break
 			}
 			time.Sleep(3 * time.Second)
-			log.Printf("Got 221 from API, retrying...")
 			apireq.Force = true
 		}
 	}
+	var singleDebug bool
 	if apiResp.Error.ErrorCode == 221 {
 		log.Printf("Failed to recover from error 221.")
+		singleDebug = true
 	}
 
 	// This is similar to the request log, but knows more about where it came from.
-	if debug {
+	if debug || singleDebug {
 		if apiResp.Error.ErrorCode != 0 {
 			errorStr = fmt.Sprintf(" Error %d: %s", apiResp.Error.ErrorCode, apiResp.Error.ErrorText)
 		}
