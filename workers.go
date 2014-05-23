@@ -60,7 +60,7 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 	apiResp, err := apireq.GetCached()
 	// 221's are the bane of my existence.
 	if err != nil || apireq.Force || apiResp.Error.ErrorCode == 221 {
-		for i := 0; i <= conf.Retries; i++ {
+		for i := 0; i < conf.Retries; i++ {
 			respChan := make(chan apiReq)
 			req := apiReq{apiReq: apireq, respChan: respChan}
 			workChan <- req
@@ -76,8 +76,7 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 			if apiResp.Error.ErrorCode != 221 {
 				break
 			}
-			time.Sleep(3 * time.Second)
-			log.Printf("Got 221, retrying(%d)...", i)
+			time.Sleep(2 * time.Second)
 			apireq.Force = true
 		}
 	}
