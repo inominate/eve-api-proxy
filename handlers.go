@@ -34,6 +34,8 @@ func defaultHandler(url string, params map[string]string) *apicache.Response {
 		if resp.Error.ErrorCode == 221 {
 			keyid, _ := params["keyid"]
 			log.Printf("Failed to recover from 221 at %s for keyid %s: %s", url, keyid, resp.Error)
+		} else if err == nil {
+			log.Printf("Successfully recovered from 221 at %s for keyid %s: %s", url, params["keyid"], resp.Error)
 		}
 	}
 	if err != nil {
