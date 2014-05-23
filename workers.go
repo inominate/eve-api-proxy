@@ -77,6 +77,7 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 			}
 			time.Sleep(3 * time.Second)
 			log.Printf("Got 221 from API, retrying...")
+			apireq.Force = true
 		}
 	}
 	if apiResp.Error.ErrorCode == 221 {
