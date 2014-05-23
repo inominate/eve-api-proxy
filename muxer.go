@@ -68,10 +68,10 @@ func logRequest(req *http.Request, url string, params map[string]string, resp *a
 
 	usingParams := ""
 	if logParams != "" {
-		usingParams = "?"
+		logParams = "?" + logParams[1:]
 	}
-	log.Printf("%s - %s%s%s - http: %d - expires: %s - %.2f seconds - %s",
-		remoteAddr, url, usingParams, logParams, resp.HTTPCode,
+	log.Printf("%s - %s%s - http: %d - expires: %s - %.2f seconds - %s",
+		remoteAddr, url, logParams, resp.HTTPCode,
 		resp.Expires.Format("2006-01-02 15:04:05"), time.Since(startTime).Seconds(),
 		errorStr)
 }
