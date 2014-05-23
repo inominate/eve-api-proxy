@@ -12,30 +12,9 @@ import (
 // Prototype for page specific handlers.
 type APIHandler func(url string, params map[string]string) *apicache.Response
 
-// Bug Correcting Handler
-// API occasionally returns 221s for no reason, retry automatically when we
-// run into one of them.
+// Default straight through handler.
 func defaultHandler(url string, params map[string]string) *apicache.Response {
 	resp, err := APIReq(url, params)
-
-	// :ccp: 221's come up for no apparent reason and need to be ignored
-	/*
-		if err == nil && resp.Error.ErrorCode == 221 {
-			params["force"] = "true"
-
-			for i := 0; i < conf.Retries; i++ {
-				resp, err = APIReq(url, params)
-				if resp.Error.ErrorCode != 221 || err != nil {
-					break
-				}
-				time.Sleep(3 * time.Second)
-			}
-			if resp.Error.ErrorCode == 221 {
-				keyid, _ := params["keyid"]
-				log.Printf("Failed to recover from 221 at %s for keyid %s: %s", url, keyid, resp.Error)
-			}
-		}
-	*/
 	if err != nil {
 		debugLog.Printf("API Error %s: %s - %+v", err, url, params)
 	}
