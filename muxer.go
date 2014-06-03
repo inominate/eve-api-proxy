@@ -62,7 +62,6 @@ func logRequest(req *http.Request, url string, params map[string]string, resp *a
 		logParams = fmt.Sprintf("%s&%s=%s", logParams, k, paramVal)
 	}
 
-	usingParams := ""
 	if logParams != "" {
 		logParams = "?" + logParams[1:]
 	}
