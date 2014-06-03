@@ -22,10 +22,6 @@ func makeParams(req *http.Request) map[string]string {
 		params[key] = val[0]
 	}
 
-	// force is for internal use only!
-	// other internal use flags should be deleted here
-	delete(params, "force")
-
 	return params
 }
 
