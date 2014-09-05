@@ -126,11 +126,11 @@ func worker(reqChan chan apiReq, workerID int) {
 		errorLimiter := make(chan error)
 		rpsLimiter := make(chan error)
 		go func() {
-			err := errorRateLimiter.Start(60 * time.Second)
+			err := errorRateLimiter.Start(5 * time.Second)
 			errorLimiter <- err
 		}()
 		go func() {
-			err := rateLimiter.Start(60 * time.Second)
+			err := rateLimiter.Start(5 * time.Second)
 			rpsLimiter <- err
 		}()
 		eErr = <-errorLimiter
