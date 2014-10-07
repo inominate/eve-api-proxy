@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/inominate/apicache"
+	"github.com/kr/pretty"
 )
 
 var apiClient apicache.Client
@@ -159,6 +160,10 @@ func worker(reqChan chan apiReq, workerID int) {
 		}
 		// We're left with a single err and errStr for returning an error to the client.
 		if err != nil {
+			log.Printf("Rate Limit Error: %s - %s", errStr, err)
+			log.Printf("Rate: %# v", pretty.Formatter(rateLimiter))
+			log.Printf("ErrorRate: %# v", pretty.Formatter(errorRateLimiter))
+
 			req.apiResp = &apicache.Response{
 				Data: apicache.SynthesizeAPIError(500,
 					fmt.Sprintf("APIProxy Error: Proxy timeout due to %s.", errStr),
