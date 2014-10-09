@@ -159,6 +159,7 @@ func worker(reqChan chan apiReq, workerID int) {
 		}
 		// We're left with a single err and errStr for returning an error to the client.
 		if err != nil {
+			log.Printf("Rate Limit Error: %s - %s", errStr, err)
 			req.apiResp = &apicache.Response{
 				Data: apicache.SynthesizeAPIError(500,
 					fmt.Sprintf("APIProxy Error: Proxy timeout due to %s.", errStr),
@@ -221,9 +222,13 @@ func PrintWorkerStats(w io.Writer) {
 	fmt.Fprintf(w, "%d workers idle, %d workers active.\n", loaded-active, active)
 
 	rateCount := rateLimiter.Count()
+	rateOutstanding := rateLimiter.Outstanding()
+
 	errorCount := errorRateLimiter.Count()
-	fmt.Fprintf(w, "%d requests in the last second.\n", rateCount)
-	fmt.Fprintf(w, "%d errors over last %d seconds.\n", errorCount, conf.ErrorPeriod)
+	errorOutstanding := errorRateLimiter.Outstanding()
+
+	fmt.Fprintf(w, "%d requests in the last second. %d requests outstanding.\n", rateCount, rateOutstanding)
+	fmt.Fprintf(w, "%d errors over last %d seconds. %d errors outstanding.\n", errorCount, conf.ErrorPeriod, errorOutstanding)
 
 	for i := int32(1); i <= atomic.LoadInt32(&workerCount); i++ {
 		count := atomic.LoadInt32(&workCount[i])
