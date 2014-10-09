@@ -160,6 +160,9 @@ func worker(reqChan chan apiReq, workerID int) {
 		// We're left with a single err and errStr for returning an error to the client.
 		if err != nil {
 			log.Printf("Rate Limit Error: %s - %s", errStr, err)
+			log.Printf("RPSLimit: %# v", rpsLimiter)
+			log.Printf("ErrorLimit: %# v", errorRateLimiter)
+
 			req.apiResp = &apicache.Response{
 				Data: apicache.SynthesizeAPIError(500,
 					fmt.Sprintf("APIProxy Error: Proxy timeout due to %s.", errStr),
