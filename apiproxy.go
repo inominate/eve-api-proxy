@@ -85,8 +85,8 @@ func main() {
 	server := http.Server{
 		Addr:         conf.Listen,
 		Handler:      &handler,
-		ReadTimeout:  5 * time.Minute,
-		WriteTimeout: 5 * time.Minute,
+		ReadTimeout:  70 * time.Second,
+		WriteTimeout: 70 * time.Second,
 	}
 
 	log.Fatal(server.ListenAndServe())
