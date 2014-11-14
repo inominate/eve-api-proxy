@@ -73,8 +73,9 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 			err = resp.err
 			workerID = fmt.Sprintf("%d", resp.worker)
 
-			// Attempt to recover from 221s
-			if apiResp.Error.ErrorCode != 221 {
+			// Attempt to recover from server issues, invalidate flag means we
+			// believe this is not a server failure.
+			if apiResp.Invalidate {
 				break
 			}
 			time.Sleep(2 * time.Second)
@@ -128,11 +129,11 @@ func worker(reqChan chan apiReq, workerID int) {
 		errorLimiter := make(chan error)
 		rpsLimiter := make(chan error)
 		go func() {
-			err := errorRateLimiter.Start(10 * time.Second)
+			err := errorRateLimiter.Start(30 * time.Second)
 			errorLimiter <- err
 		}()
 		go func() {
-			err := rateLimiter.Start(10 * time.Second)
+			err := rateLimiter.Start(30 * time.Second)
 			rpsLimiter <- err
 		}()
 		eErr = <-errorLimiter
@@ -185,7 +186,12 @@ func worker(reqChan chan apiReq, workerID int) {
 			resp, err := req.apiReq.Do()
 			req.apiResp = resp
 			req.err = err
-			if resp.Error.ErrorCode == 0 {
+			if resp.Error.ErrorCode == 0 || (resp.Error.ErrorCode >= 901 && resp.Error.ErrorCode <= 905) {
+				// 901-905 means we are currently tempbanned from the API.
+				// We do not treat this as an error for rate limiting because
+				// the apicache library handles it for us, these requests are
+				// not actually being sent to the CCP API.
+
 				// Finish, but skip recording the event in the rate limiter
 				// when there is no error.
 				errorRateLimiter.Finish(true)
