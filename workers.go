@@ -186,11 +186,13 @@ func worker(reqChan chan apiReq, workerID int) {
 			resp, err := req.apiReq.Do()
 			req.apiResp = resp
 			req.err = err
-			if resp.Error.ErrorCode == 0 || (resp.Error.ErrorCode >= 901 && resp.Error.ErrorCode <= 905) {
-				// 901-905 means we are currently tempbanned from the API.
-				// We do not treat this as an error for rate limiting because
+			if resp.Error.ErrorCode == 0 || resp.HTTPCode == 504 || resp.HTTPCode == 418 {
+				// 418 means we are currently tempbanned from the API.
+				// 504 means the API proxy had some kind of internal or network error.
+				//
+				// We do not treat these as an error for rate limiting because
 				// the apicache library handles it for us, these requests are
-				// not actually being sent to the CCP API.
+				// not actually making it to the CCP API.
 
 				// Finish, but skip recording the event in the rate limiter
 				// when there is no error.
