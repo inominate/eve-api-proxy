@@ -75,7 +75,9 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 
 			// Attempt to recover from server issues, invalidate flag means we
 			// believe this is not a server failure.
-			if apiResp.Invalidate {
+			// 418 is the tempban code
+			// 500/900 are panic codes
+			if apiResp.Invalidate || apiResp.HTTPCode == 418 || apiResp.HTTPCode == 500 || apiResp.HTTPCode == 900 {
 				break
 			}
 			time.Sleep(2 * time.Second)
