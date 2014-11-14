@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/inominate/apicache"
+	"github.com/kr/pretty"
 )
 
 var apiClient apicache.Client
@@ -117,8 +118,9 @@ func worker(reqChan chan apiReq, workerID int) {
 	var eErr error
 	var rErr error
 
-	var errStr string
 	for req := range reqChan {
+		var errStr string
+
 		atomic.AddInt32(&activeWorkerCount, 1)
 
 		// Run both of the error limiters simultaneously rather than in
@@ -126,11 +128,11 @@ func worker(reqChan chan apiReq, workerID int) {
 		errorLimiter := make(chan error)
 		rpsLimiter := make(chan error)
 		go func() {
-			err := errorRateLimiter.Start(5 * time.Second)
+			err := errorRateLimiter.Start(10 * time.Second)
 			errorLimiter <- err
 		}()
 		go func() {
-			err := rateLimiter.Start(5 * time.Second)
+			err := rateLimiter.Start(10 * time.Second)
 			rpsLimiter <- err
 		}()
 		eErr = <-errorLimiter
@@ -149,7 +151,11 @@ func worker(reqChan chan apiReq, workerID int) {
 		}
 		if rErr != nil {
 			err = rErr
-			errStr = "rate limiting"
+			if errStr == "" {
+				errStr = "rate limiting"
+			} else {
+				errStr += " and rate limiting"
+			}
 
 			// If the error limiter didn't also timeout be sure to signal it that we
 			// didn't do anything.
@@ -160,8 +166,10 @@ func worker(reqChan chan apiReq, workerID int) {
 		// We're left with a single err and errStr for returning an error to the client.
 		if err != nil {
 			log.Printf("Rate Limit Error: %s - %s", errStr, err)
-			log.Printf("RPSLimit: %# v", rpsLimiter)
-			log.Printf("ErrorLimit: %# v", errorRateLimiter)
+			log.Printf("RPS Events: %d Outstanding: %d", rateLimiter.Count(), rateLimiter.Outstanding())
+			log.Printf("Errors Events: %d Outstanding: %d", errorRateLimiter.Count(), errorRateLimiter.Outstanding())
+			log.Printf("RPSLimit: %# v", pretty.Formatter(rateLimiter))
+			log.Printf("ErrorLimit: %# v", pretty.Formatter(errorRateLimiter))
 
 			req.apiResp = &apicache.Response{
 				Data: apicache.SynthesizeAPIError(500,

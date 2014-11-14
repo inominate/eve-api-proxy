@@ -58,8 +58,8 @@ var defaultConfig = configFile{
 
 	RequestsPerSecond: 30,
 
-	ErrorPeriod: 180,
-	MaxErrors:   270,
+	ErrorPeriod: 60,
+	MaxErrors:   75,
 
 	Retries:    3,
 	APITimeout: 60,
