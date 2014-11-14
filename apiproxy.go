@@ -65,6 +65,7 @@ func main() {
 
 	apicache.NewClient(dc)
 	apicache.SetMaxIdleConns(conf.Workers)
+	// We do our own retrying, we don't want the apicache to do them for us.
 	apicache.GetDefaultClient().Retries = 0
 	apicache.GetDefaultClient().SetTimeout(time.Duration(conf.APITimeout) * time.Second)
 
