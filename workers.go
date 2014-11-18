@@ -77,7 +77,7 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 			// believe this is not a server failure.
 			// 418 is the tempban code
 			// 500/900 are panic codes
-			if apiResp.Invalidate || apiResp.HTTPCode == 418 || apiResp.HTTPCode == 500 || apiResp.HTTPCode == 900 {
+			if err == nil || apiResp.Invalidate || apiResp.HTTPCode == 418 || apiResp.HTTPCode == 500 || apiResp.HTTPCode == 900 {
 				break
 			}
 			time.Sleep(2 * time.Second)
