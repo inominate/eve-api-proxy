@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/inominate/apicache"
-	"github.com/kr/pretty"
 )
 
 var apiClient apicache.Client
@@ -171,8 +170,6 @@ func worker(reqChan chan apiReq, workerID int) {
 			log.Printf("Rate Limit Error: %s - %s", errStr, err)
 			log.Printf("RPS Events: %d Outstanding: %d", rateLimiter.Count(), rateLimiter.Outstanding())
 			log.Printf("Errors Events: %d Outstanding: %d", errorRateLimiter.Count(), errorRateLimiter.Outstanding())
-			log.Printf("RPSLimit: %# v", pretty.Formatter(rateLimiter))
-			log.Printf("ErrorLimit: %# v", pretty.Formatter(errorRateLimiter))
 
 			req.apiResp = &apicache.Response{
 				Data: apicache.SynthesizeAPIError(500,
