@@ -56,10 +56,13 @@ var defaultConfig = configFile{
 	Threads: 0,
 	Workers: 10,
 
+	// As per CCP FoxFour.
 	RequestsPerSecond: 30,
 
-	ErrorPeriod: 60,
-	MaxErrors:   75,
+	// According to CCP FocFour error limit seems to be
+	// 300 errors over 3 minutes.
+	ErrorPeriod: 180,
+	MaxErrors:   250,
 
 	Retries:    3,
 	APITimeout: 60,
