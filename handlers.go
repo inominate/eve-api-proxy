@@ -136,10 +136,7 @@ const maxIDErrors = 16
 // to enable the correction.
 func idsListHandler(url string, params map[string]string) *apicache.Response {
 	var runFixer bool
-	if _, ok := params["fix"]; ok {
-		delete(params, "fix")
-		runFixer = true
-	}
+	runFixer = true
 
 	resp, err := APIReq(url, params)
 	if err != nil {
