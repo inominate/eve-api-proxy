@@ -140,6 +140,7 @@ func worker(reqChan chan apiReq, workerID int) {
 		}()
 		eErr = <-errorLimiter
 		rErr = <-rpsLimiter
+		err = nil
 
 		// Check the error limiter for timeouts
 		if eErr != nil {
