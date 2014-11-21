@@ -82,6 +82,10 @@ virtually never be anything other than 0 or 1.  Default is 0.
 Number of workers to run processing requests, each worker tries to maintain its
 own semi-permanent connection to the API. Default is 10.
 
+##### `UserAgent`
+Sets the user agent used to contact the Eve API. This should contain 
+organization and contact information in case of misbehavior.
+
 ##### `Retries`
 The number of times to retry the API in case of a connection issue. Default is
 3.
