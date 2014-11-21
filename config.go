@@ -56,6 +56,8 @@ var defaultConfig = configFile{
 	Threads: 0,
 	Workers: 10,
 
+	FastStart: true,
+
 	// As per CCP FoxFour.
 	RequestsPerSecond: 30,
 
