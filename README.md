@@ -49,8 +49,7 @@ To install, build, and run the proxy:
 
 ``` bash
 go get github.com/inominate/eve-api-proxy
-cd $GOPATH/src/github.com/inominate/eve-api-proxy
-go build
+cd $GOPATH/bin
 ./eve-api-proxy -create
 mv apiproxy.xml.default apiproxy.xml 
 ./eve-api-proxy
@@ -58,7 +57,7 @@ mv apiproxy.xml.default apiproxy.xml
 
 The proxy binds to localhost:3748 by default.  Applications wishing to use it
 can simply point to http://localhost:3748/ instead of 
-https://api.eveonline.com/.  
+https://api.eveonline.com/. Runtime statistics are available at "/stats".
 
 Caution should be used in exposing the proxy to the outside world. I
 recommend putting it behind a webserver such as nginx that is configured to
