@@ -24,9 +24,7 @@ fairly easily.
 * Locations.xml.aspx will fail completely when given a list of item ids and one
 or more are invalid. This can occur due to the cache lag in other endpoints 
 still showing nonexistent items. The proxy can correct for this faster than
-trying each id independently. Because of the large number of errors this can
-potentialy generate, it will fail if it generates more than 16 errors and must
-be manually enabled by adding fix=1 to the query string.
+trying each id independently. 
 
 * If for some reason the API throws a temp ban, the proxy will refuse to
 continue servicing requests until the ban expires.
@@ -91,8 +89,14 @@ The number of times to retry the API in case of a connection issue. Default is
 
 ##### `APITimeout`
 The maximum length of time in seconds that any single request to the API should
-take. Default is 60 seconds and should probably be increased in the case of
-slow connections pulling large blocks of XML.
+take. Default is 60 seconds and can be increased in the case of slow connections 
+pulling large blocks of XML.
+
+##### `RequestsPerSecond`
+The maximum number of requests per second that will be sent to the Eve API.
+According to CCP FoxFour this should be kept at 30 or below.
+
+Default is 30.
 
 ##### `ErrorPeriod`
 The length of time to consider API errors in the count. Higher numbers allow
@@ -100,23 +104,25 @@ bursty errors to run without interruption but can cause timeouts when the limit
 is reached.  Lower numbers may cause throttling sooner but can allow for 
 results to be returned before timeouts.
 
-If a request is held up for more than 60 seconds, the proxy will return a CCP
+If a request is held up for more than 30 seconds, the proxy will return a CCP
 style API Error 500.
 
-Default is 60 seconds.
+Default is 180 seconds or three minutes.
 
 ##### `MaxErrors`
 The maximum number of errors that can occur over any given ErrorPeriod. This
 number should always be greater than the number of workers or else workers will
-be held up in order go guarantee the limit is not broken. Default is 20.
+be held up in order go guarantee the limit is not broken. Default is 250.
+
+According to CCP FoxFour, the CCP API will issue a temp ban at 300 errors over
+three minutes.
 
 ##### `CacheDir`
 The directory in which cached API data will be stored.  Default is ./cache/
 
 ##### `FastStart`
-Fast start mode will clear the cache on startup instead of reloading it.
-Should only be used for debugging when the proxy needs to be restarted with a
-very large cache.
+Fast start mode will clear the cache on startup instead of reloading it. As long
+as you're not restarting too often this can be left on.
 
 ##### `LogFile`
 File to use for general logging. Default is blank and will use stdout.
