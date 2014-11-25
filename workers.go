@@ -115,12 +115,9 @@ func APIReq(url string, params map[string]string) (*apicache.Response, error) {
 
 func worker(reqChan chan apiReq, workerID int) {
 	atomic.AddInt32(&workerCount, 1)
-	var err error
-
-	var eErr error
-	var rErr error
 
 	for req := range reqChan {
+		var err, eErr, rErr error
 		var errStr string
 
 		atomic.AddInt32(&activeWorkerCount, 1)
@@ -139,7 +136,6 @@ func worker(reqChan chan apiReq, workerID int) {
 		}()
 		eErr = <-errorLimiter
 		rErr = <-rpsLimiter
-		err = nil
 
 		// Check the error limiter for timeouts
 		if eErr != nil {
