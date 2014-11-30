@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
@@ -22,13 +23,37 @@ func defaultHandler(url string, params map[string]string) *apicache.Response {
 	return resp
 }
 
+// Handler for recovering from bogus 221s
+func randomErrorHandler(url string, params map[string]string) *apicache.Response {
+	var resp *apicache.Response
+	var err error
+	attempts := 0
+
+	for ; attempts < conf.Retries; attempts++ {
+		resp, err = APIReq(url, params)
+		if err != nil {
+			debugLog.Printf("API Error %s: %s - %+v", err, url, params)
+		}
+		if resp.Error.ErrorCode != 221 {
+			break
+		}
+	}
+
+	if resp.Error.ErrorCode == 221 {
+		log.Printf("Failed to recover from error 221.")
+	} else if attempts > 0 {
+		log.Printf("Recovered from error 221.")
+	}
+	return resp
+}
+
 // Defines valid API pages and what special handler they should use.
 // nil handlers will attempt to use defaultHandler which is a straight
 // passthrough.
 var validPages = map[string]APIHandler{
 	//	"/control/":                             controlHandler,
 	"/account/accountstatus.xml.aspx": nil,
-	"/account/apikeyinfo.xml.aspx":    nil,
+	"/account/apikeyinfo.xml.aspx":    randomErrorHandler,
 	"/account/characters.xml.aspx":    nil,
 
 	"/char/accountbalance.xml.aspx":         nil,
