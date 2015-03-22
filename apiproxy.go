@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -90,7 +91,9 @@ func main() {
 		WriteTimeout: 70 * time.Second,
 	}
 
-	log.Fatal(server.ListenAndServe())
+	err = server.ListenAndServe()
+	fmt.Printf("Error stating api proxy: %s", err)
+	log.Fatal(err)
 }
 
 func setupLogging() {
