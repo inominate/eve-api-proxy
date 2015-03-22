@@ -58,6 +58,7 @@ var validPages = map[string]APIHandler{
 
 	"/char/accountbalance.xml.aspx":         nil,
 	"/char/assetlist.xml.aspx":              nil,
+	"/char/blueprints.xml.aspx":             nil,
 	"/char/calendareventattendees.xml.aspx": nil,
 	"/char/charactersheet.xml.aspx":         nil,
 	"/char/contactlist.xml.aspx":            nil,
@@ -92,6 +93,7 @@ var validPages = map[string]APIHandler{
 
 	"/corp/accountbalance.xml.aspx":       nil,
 	"/corp/assetlist.xml.aspx":            nil,
+	"/corp/blueprints.xml.aspx":           nil,
 	"/corp/contactlist.xml.aspx":          nil,
 	"/corp/containerlog.xml.aspx":         nil,
 	"/corp/contracts.xml.aspx":            nil,
