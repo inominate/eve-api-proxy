@@ -100,6 +100,7 @@ var validPages = map[string]APIHandler{
 	"/corp/contractitems.xml.aspx":        nil,
 	"/corp/contractbids.xml.aspx":         nil,
 	"/corp/corporationsheet.xml.aspx":     nil,
+	"/corp/customsoffices.xml.aspx":       nil,
 	"/corp/facilities.xml.aspx":           nil,
 	"/corp/facwarstats.xml.aspx":          nil,
 	"/corp/industryjobs.xml.aspx":         nil,
@@ -124,7 +125,6 @@ var validPages = map[string]APIHandler{
 	"/corp/wallettransactions.xml.aspx":   nil,
 
 	"/eve/alliancelist.xml.aspx":           nil,
-	"/eve/certificatetree.xml.aspx":        nil,
 	"/eve/characteraffiliation.xml.aspx":   idsListHandler,
 	"/eve/characterid.xml.aspx":            nil,
 	"/eve/characterinfo.xml.aspx":          nil,
