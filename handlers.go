@@ -42,7 +42,7 @@ func randomErrorHandler(url string, params map[string]string) *apicache.Response
 	if resp.Error.ErrorCode == 221 {
 		log.Printf("Failed to recover from error 221.")
 	} else if attempts > 0 {
-		log.Printf("Recovered from error 221.")
+		log.Printf("Recovered from error 221 on retry %d.", attempts)
 	}
 	return resp
 }
