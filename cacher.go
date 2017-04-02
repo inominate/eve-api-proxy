@@ -181,6 +181,7 @@ func (d *DiskCache) Get(cacheTag string) (int, []byte, time.Time, error) {
 		d.Lock()
 		delete(d.cacheFiles, cacheTag)
 		d.Unlock()
+		d.RLock()
 
 		return 0, nil, ce.Expires, fmt.Errorf("Cache error - metadata file not found.")
 	}
